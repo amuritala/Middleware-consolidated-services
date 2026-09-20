@@ -14,6 +14,12 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
+import org.springframework.web.reactive.function.client.ClientRequest;
+import org.springframework.web.reactive.function.client.ClientResponse;
+import reactor.core.publisher.Mono;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Configuration
 public class WebConfig {
@@ -63,7 +69,7 @@ public class WebConfig {
 
     @Bean
     WebClient customerWebClient(WebClient.Builder webClientBuilder) {
-        return webClientBuilder
+        return configuredBuilder(webClientBuilder, "CustomerService")
                 .baseUrl(customerServiceUrl)
                 .exchangeStrategies(ExchangeStrategies
                         .builder()
@@ -78,7 +84,7 @@ public class WebConfig {
 
     @Bean
     WebClient accountServiceWebClient(WebClient.Builder webClientBuilder) {
-        return webClientBuilder
+        return configuredBuilder(webClientBuilder, "AccountService")
                 .baseUrl(accountServiceUrl)
                 .exchangeStrategies(ExchangeStrategies
                         .builder()
@@ -93,7 +99,7 @@ public class WebConfig {
 
     @Bean
     WebClient accountStatsServiceWebClient(WebClient.Builder webClientBuilder) {
-        return webClientBuilder
+        return configuredBuilder(webClientBuilder, "AccountStatsService")
                 .baseUrl(accountStatsServiceUrl)
                 .exchangeStrategies(ExchangeStrategies
                         .builder()
@@ -108,7 +114,7 @@ public class WebConfig {
 
     @Bean
     WebClient accountFinServiceWebClient(WebClient.Builder webClientBuilder) {
-        return webClientBuilder
+        return configuredBuilder(webClientBuilder, "AccountFinancialService")
                 .baseUrl(accountFinServiceUrl)
                 .exchangeStrategies(ExchangeStrategies
                         .builder()
@@ -123,7 +129,7 @@ public class WebConfig {
 
     @Bean
     WebClient deServiceWebClient(WebClient.Builder webClientBuilder) {
-        return webClientBuilder
+        return configuredBuilder(webClientBuilder, "DeService")
                 .baseUrl(deServiceUrl)
                 .exchangeStrategies(ExchangeStrategies
                         .builder()
@@ -138,7 +144,7 @@ public class WebConfig {
 
     @Bean
     WebClient bstServiceWebClient(WebClient.Builder webClientBuilder) {
-        return webClientBuilder
+        return configuredBuilder(webClientBuilder, "AccountStatusService")
                 .baseUrl(bstServiceUrl)
                 .exchangeStrategies(ExchangeStrategies
                         .builder()
@@ -153,7 +159,7 @@ public class WebConfig {
 
     @Bean
     WebClient imageServiceWebClient(WebClient.Builder webClientBuilder) {
-        return webClientBuilder
+        return configuredBuilder(webClientBuilder, "ImageService")
                 .baseUrl(imageServiceUrl)
                 .exchangeStrategies(ExchangeStrategies
                         .builder()
@@ -168,7 +174,7 @@ public class WebConfig {
 
     @Bean
     WebClient accountClassServiceWebClient(WebClient.Builder webClientBuilder) {
-        return webClientBuilder
+        return configuredBuilder(webClientBuilder, "AccountClassService")
                 .baseUrl(accountClassServiceUrl)
                 .exchangeStrategies(ExchangeStrategies
                         .builder()
@@ -183,7 +189,7 @@ public class WebConfig {
 
     @Bean
     WebClient rtellerServiceWebClient(WebClient.Builder webClientBuilder) {
-        return webClientBuilder
+        return configuredBuilder(webClientBuilder, "RtellerService")
                 .baseUrl(rTellerServiceUrl)
                 .exchangeStrategies(ExchangeStrategies
                         .builder()
@@ -194,5 +200,23 @@ public class WebConfig {
                 .defaultHeader("Accept", mediaType)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .build();
+    }
+
+    private WebClient.Builder configuredBuilder(WebClient.Builder builder, String serviceName) {
+        return builder.clone().filter(downstreamAuditFilter(serviceName));
+    }
+
+    private ExchangeFilterFunction downstreamAuditFilter(String serviceName) {
+        return (request, next) -> {
+            ServletRequestAttributes attributes =
+                    (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                String path = request.url().getPath();
+                String operation = path.replaceFirst("^/+", "").replaceFirst("^api/v1/", "");
+                attributes.getRequest().setAttribute("downstream.serviceName", serviceName);
+                attributes.getRequest().setAttribute("downstream.operation", operation);
+            }
+            return next.exchange(request);
+        };
     }
 }

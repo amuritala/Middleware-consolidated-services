@@ -32,7 +32,11 @@ public class DownstreamAuditAspect {
         LocalDateTime start = LocalDateTime.now();
         String request = serialize(joinPoint.getArgs());
         String userId = currentUserId();
-        String serviceName = joinPoint.getSignature().getDeclaringType().getSimpleName();
+        ServletRequestAttributes requestAttributes =
+                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        String serviceName = requestAttribute(requestAttributes, "downstream.serviceName",
+                joinPoint.getSignature().getDeclaringType().getSimpleName());
+        String operation = requestAttribute(requestAttributes, "downstream.operation", "unknown");
         int status = 200;
         String response = null;
 
@@ -52,6 +56,7 @@ public class DownstreamAuditAspect {
                 DownstreamAudit audit = new DownstreamAudit();
                 audit.setUserId(userId);
                 audit.setServiceName(serviceName);
+                audit.setOperation(operation);
                 audit.setRequest(request);
                 audit.setResponse(response);
                 audit.setHttpStatus(status);
@@ -61,7 +66,16 @@ public class DownstreamAuditAspect {
             } catch (Exception exception) {
                 log.error("Unable to persist downstream audit record", exception);
             }
+
         }
+    }
+
+    private String requestAttribute(ServletRequestAttributes attributes, String name, String fallback) {
+        if (attributes == null) {
+            return fallback;
+        }
+        Object value = attributes.getRequest().getAttribute(name);
+        return value == null ? fallback : value.toString();
     }
 
     private String currentUserId() {
