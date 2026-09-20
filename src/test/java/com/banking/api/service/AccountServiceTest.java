@@ -14,11 +14,62 @@ import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class AccountServiceTest {
+
+    @Test
+    void mapsUppercaseCreateAccountEnvelopeAndMessageStatus() {
+        String responseJson = """
+                {
+                  "FCUBSBODY": {
+                    "FCUBSERRORRESP": [
+                      {
+                        "ERROR": [
+                          {
+                            "ECODE": "PC-CUA-004",
+                            "EDESC": "Customer Account Number cannot be blank"
+                          }
+                        ]
+                      }
+                    ],
+                    "FCUBSWARNINGRESP": [],
+                    "custAccountFull": {
+                      "ACC": null,
+                      "ACCLS": "STSVEI",
+                      "BRN": "101",
+                      "CCY": "SLE",
+                      "CUSTNO": "054855"
+                    }
+                  },
+                  "FCUBSHEADER": {
+                    "MSGSTAT": "FAILURE",
+                    "ACTION": "NEW",
+                    "SERVICE": "FCUBSAccService"
+                  }
+                }
+                """;
+        WebClient webClient = WebClient.builder()
+                .baseUrl("http://account-service")
+                .exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
+                        .header("Content-Type", "application/json")
+                        .body(responseJson)
+                        .build()))
+                .build();
+
+        var response = new AccountService(
+                webClient,
+                new ObjectMapper().findAndRegisterModules()
+        ).createAccount(new AccountCreationRequest());
+
+        assertEquals("FAILURE", response.getFcubsheader().getMsgstat());
+        assertEquals("STSVEI", response.getFcubsbody().getCustAccountFull().get("ACCLS"));
+        assertEquals("PC-CUA-004", response.getFcubsbody().getFcubserrorresp().get(0)
+                .getError().get(0).getEcode());
+    }
 
     @Test
     void delegatesAccountOperationsToExpectedEndpoints() {
