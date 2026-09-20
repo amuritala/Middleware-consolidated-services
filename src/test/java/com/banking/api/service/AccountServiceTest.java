@@ -36,7 +36,16 @@ class AccountServiceTest {
                         ]
                       }
                     ],
-                    "FCUBSWARNINGRESP": [],
+                    "FCUBSWARNINGRESP": [
+                      {
+                        "WARNING": [
+                          {
+                            "WCODE": "ST-SAVE-002",
+                            "WDESC": "Record Successfully Saved and Authorized"
+                          }
+                        ]
+                      }
+                    ],
                     "custAccountFull": {
                       "ACC": null,
                       "ACCLS": "STSVEI",
@@ -70,6 +79,8 @@ class AccountServiceTest {
         assertEquals("STSVEI", response.getFcubsbody().getCustAccountFull().get("ACCLS"));
         assertEquals("PC-CUA-004", response.getFcubsbody().getFcubserrorresp().get(0)
                 .getError().get(0).getEcode());
+        assertEquals("ST-SAVE-002", response.getFcubsbody().getFcubswarningresp().get(0)
+                .getWarning().get(0).getWcode());
         assertEquals(16, request.getAcc().length());
         assertEquals("101054855", request.getAcc().substring(0, 9));
         assertEquals(7, request.getAcc().substring(9).length());
