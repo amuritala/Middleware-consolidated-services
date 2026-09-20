@@ -60,15 +60,19 @@ class AccountServiceTest {
                         .build()))
                 .build();
 
+        AccountCreationRequest request = new AccountCreationRequest("101", "123456", "054855", "SLE", "STSVEI");
         var response = new AccountService(
                 webClient,
                 new ObjectMapper().findAndRegisterModules()
-        ).createAccount(new AccountCreationRequest());
+        ).createAccount(request);
 
         assertEquals("FAILURE", response.getFcubsheader().getMsgstat());
         assertEquals("STSVEI", response.getFcubsbody().getCustAccountFull().get("ACCLS"));
         assertEquals("PC-CUA-004", response.getFcubsbody().getFcubserrorresp().get(0)
                 .getError().get(0).getEcode());
+        assertEquals(16, request.getAcc().length());
+        assertEquals("101054855", request.getAcc().substring(0, 9));
+        assertEquals(7, request.getAcc().substring(9).length());
     }
 
     @Test
@@ -101,9 +105,10 @@ class AccountServiceTest {
         assertNotNull(accountService.statement(
                 new StatementRequest("987654", "statement-1")).getFcubsbody());
         assertNotNull(accountService.checkBalance(balanceRequest).getFcubsbody());
-        assertNotNull(accountService.createAccount(
-                new AccountCreationRequest("001", "123456", "987654", "NGN", "SAV"))
-                .getFcubsbody());
+        AccountCreationRequest createRequest =
+                new AccountCreationRequest("001", "123456", "987654", "NGN", "SAV");
+        assertNotNull(accountService.createAccount(createRequest).getFcubsbody());
+        assertEquals(16, createRequest.getAcc().length());
 
         assertEquals(List.of(
                 "/api/v1/Summarybal",

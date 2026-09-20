@@ -17,9 +17,14 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.security.SecureRandom;
+import java.util.Objects;
+
 @Service
 @Slf4j
 public class AccountService {
+
+    private static final SecureRandom ACCOUNT_NUMBER_RANDOM = new SecureRandom();
 
     private final WebClient webClient;
     private final ObjectMapper objectMapper;
@@ -33,13 +38,23 @@ public class AccountService {
     }
 
     public CreateAccountResponse createAccount(AccountCreationRequest request) {
+        Objects.requireNonNull(request, "Account creation request cannot be null");
+        request.setAcc(generateAccountNumber(request.getBrn(), request.getCustno()));
         log.info("Creating account for customer number {}", request.getCustno());
+
         return postAndLogRawResponse(
                 "api/v1/createAcc",
                 request,
                 CreateAccountResponse.class,
                 "creating account"
         );
+    }
+
+    private String generateAccountNumber(String branchCode, String customerNumber) {
+        Objects.requireNonNull(branchCode, "Branch code cannot be null");
+        Objects.requireNonNull(customerNumber, "Customer number cannot be null");
+        return branchCode + customerNumber
+                + String.format("%07d", ACCOUNT_NUMBER_RANDOM.nextInt(10_000_000));
     }
 
     public AccountResponse checkBalance(AccountBalanceRequest request) {
