@@ -41,7 +41,6 @@ public class AccountService {
         Objects.requireNonNull(request, "Account creation request cannot be null");
         request.setAcc(generateAccountNumber(request.getBrn(), request.getCustno()));
         log.info("Creating account for customer number {}", request.getCustno());
-
         return postAndLogRawResponse(
                 "api/v1/createAcc",
                 request,
@@ -93,7 +92,18 @@ public class AccountService {
                 .uri(uri)
                 .bodyValue(request)
                 .retrieve()
-                .bodyToMono(responseType)
+                .bodyToMono(String.class)
+                .doOnNext(rawResponse -> log.info("Raw response for {}: {}", operation, rawResponse))
+                .map(rawResponse -> {
+                    try {
+                        return objectMapper.readValue(rawResponse, responseType);
+                    } catch (JsonProcessingException exception) {
+                        throw new IllegalStateException(
+                                "Unable to deserialize raw response for " + operation,
+                                exception
+                        );
+                    }
+                })
                 .doOnError(ex -> log.error("{} failed: {}", operation, ex.getMessage()))
                 .block();
     }
