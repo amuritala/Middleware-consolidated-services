@@ -3,6 +3,9 @@ package com.banking.api.service;
 import com.banking.api.dto.AccountClass;
 import com.banking.api.dto.CustomerCategory;
 import com.banking.api.dto.Location;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -15,6 +18,7 @@ import java.util.List;
 public class AccountClassService {
 
     private final WebClient webClient;
+    private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
     public AccountClassService(@Qualifier("accountClassServiceWebClient") WebClient webClient) {
         this.webClient = webClient;
@@ -36,9 +40,19 @@ public class AccountClassService {
         return webClient.get()
                 .uri(uri)
                 .retrieve()
-                .bodyToFlux(responseType)
-                .collectList()
+                .bodyToMono(String.class)
+                .doOnNext(rawResponse -> log.info("Raw response for {}: {}", operation, rawResponse))
+                .map(rawResponse -> readList(rawResponse, responseType, operation))
                 .doOnError(ex -> log.error("Querying {} failed: {}", operation, ex.getMessage()))
                 .block();
+    }
+
+    private <T> List<T> readList(String rawResponse, Class<T> responseType, String operation) {
+        try {
+            JavaType listType = objectMapper.getTypeFactory().constructCollectionType(List.class, responseType);
+            return objectMapper.readValue(rawResponse, listType);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("Unable to deserialize raw response for " + operation, exception);
+        }
     }
 }

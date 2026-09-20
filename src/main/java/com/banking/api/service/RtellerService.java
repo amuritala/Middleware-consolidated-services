@@ -6,6 +6,8 @@ import com.banking.api.dto.ProductRequest;
 import com.banking.api.dto.ReverseTransactionRequest;
 import com.banking.api.dto.RtellerResponse;
 import com.banking.api.dto.TransactionQueryRequest;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -17,6 +19,7 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class RtellerService {
     private final WebClient webClient;
+    private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
     public RtellerService(@Qualifier("rtellerServiceWebClient") WebClient webClient) {
         this.webClient = webClient;
     }
@@ -48,8 +51,18 @@ public class RtellerService {
                 .uri(uri)
                 .bodyValue(request)
                 .retrieve()
-                .bodyToMono(RtellerResponse.class)
+                .bodyToMono(String.class)
+                .doOnNext(rawResponse -> log.info("Raw response for {}: {}", operation, rawResponse))
+                .map(rawResponse -> readResponse(rawResponse, operation))
                 .doOnError(ex -> log.error("{} failed: {}", operation, ex.getMessage()))
                 .block();
+    }
+
+    private RtellerResponse readResponse(String rawResponse, String operation) {
+        try {
+            return objectMapper.readValue(rawResponse, RtellerResponse.class);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("Unable to deserialize raw response for " + operation, exception);
+        }
     }
 }

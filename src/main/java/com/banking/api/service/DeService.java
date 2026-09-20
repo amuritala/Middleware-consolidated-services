@@ -5,6 +5,8 @@ import com.banking.api.dto.CreateTellerRequest;
 import com.banking.api.dto.DeResponse;
 import com.banking.api.dto.JnrMasterFullTemplate;
 import com.banking.api.dto.MultiDeJournalRequest;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -15,6 +17,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class DeService {
 
     private final WebClient webClient;
+    private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
     public DeService(@Qualifier("deServiceWebClient") WebClient webClient) {
         this.webClient = webClient;
@@ -45,8 +48,18 @@ public class DeService {
                 .uri(uri)
                 .bodyValue(request)
                 .retrieve()
-                .bodyToMono(DeResponse.class)
+                .bodyToMono(String.class)
+                .doOnNext(rawResponse -> log.info("Raw response for {}: {}", operation, rawResponse))
+                .map(rawResponse -> readResponse(rawResponse, operation))
                 .doOnError(ex -> log.error("{} failed: {}", operation, ex.getMessage()))
                 .block();
+    }
+
+    private DeResponse readResponse(String rawResponse, String operation) {
+        try {
+            return objectMapper.readValue(rawResponse, DeResponse.class);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("Unable to deserialize raw response for " + operation, exception);
+        }
     }
 }

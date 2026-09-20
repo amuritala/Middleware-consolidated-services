@@ -7,6 +7,8 @@ import com.banking.api.dto.CreateCorporateRequest;
 import com.banking.api.dto.CustomerAccountDetailsRequest;
 import com.banking.api.dto.CustomerResponse;
 import com.banking.api.dto.CustomerNumberRequest;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class CustomerService {
 
     private final WebClient webClient;
+    private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
     public CustomerService(@Qualifier("customerWebClient") WebClient webClient) {
         this.webClient = webClient;
@@ -57,9 +60,19 @@ public class CustomerService {
                 .uri(uri)
                 .bodyValue(request)
                 .retrieve()
-                .bodyToMono(CustomerResponse.class)
+                .bodyToMono(String.class)
+                .doOnNext(rawResponse -> log.info("Raw response for {}: {}", operation, rawResponse))
+                .map(rawResponse -> readResponse(rawResponse, operation))
                 .doOnError(ex -> log.error("{} failed: {}", operation, ex.getMessage()))
                 .block();
+    }
+
+    private CustomerResponse readResponse(String rawResponse, String operation) {
+        try {
+            return objectMapper.readValue(rawResponse, CustomerResponse.class);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("Unable to deserialize raw response for " + operation, exception);
+        }
     }
 
 }
