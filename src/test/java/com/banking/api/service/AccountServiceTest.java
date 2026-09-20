@@ -1,6 +1,7 @@
 package com.banking.api.service;
 
 import com.banking.api.dto.AccountBalanceRequest;
+import com.banking.api.dto.AccountResponse;
 import com.banking.api.dto.AccountDetailsRequest;
 import com.banking.api.dto.AccountNumberRequest;
 import com.banking.api.dto.AccountCreationRequest;
@@ -129,5 +130,57 @@ class AccountServiceTest {
                 "/api/v1/Statement",
                 "/api/v1/bal",
                 "/api/v1/createAcc"), paths);
+    }
+
+    @Test
+    void mapsAccountDetailsResponseWithCustomerDetails() {
+        String responseJson = """
+                {
+                  "FCUBSBODY": {
+                    "FCUBSERRORRESP": [],
+                    "FCUBSWARNINGRESP": [
+                      {
+                        "WARNING": [
+                          {
+                            "WCODE": "ST-SAVE-023",
+                            "WDESC": "Record Successfully Retrieved"
+                          }
+                        ]
+                      }
+                    ],
+                    "custDetailsFull": {
+                      "ACBALANCE": 111679.43,
+                      "ACTCLASS": "CACOP",
+                      "BRANCHCODE": "101",
+                      "CCY": "SLE",
+                      "CUSTACNO": "1010016330301010",
+                      "CUSTNO": "001633"
+                    },
+                    "custDetailsIO": null
+                  },
+                  "FCUBSHEADER": {
+                    "MSGSTAT": "SUCCESS"
+                  }
+                }
+                """;
+        WebClient webClient = WebClient.builder()
+                .baseUrl("http://account-service")
+                .exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
+                        .header("Content-Type", "application/json")
+                        .body(responseJson)
+                        .build()))
+                .build();
+
+        AccountResponse response = new AccountService(
+                webClient,
+                new ObjectMapper().findAndRegisterModules()
+        ).accountDetails(new AccountDetailsRequest("101", "1010016330301010"));
+
+        assertEquals("SUCCESS", response.getFcubsheader().getMsgstat());
+        assertEquals("001633", response.getFcubsbody().getCustDetailsFull().get("CUSTNO"));
+        assertEquals(111679.43,
+                ((Number) response.getFcubsbody().getCustDetailsFull().get("ACBALANCE")).doubleValue());
+        assertEquals("ST-SAVE-023", response.getFcubsbody().getFcubswarningresp().get(0)
+                .getWarning().get(0).getWcode());
     }
 }
