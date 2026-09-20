@@ -151,4 +151,52 @@ class CustomerServiceTest {
         Map<?, ?> personal = (Map<?, ?>) response.getFcubsbody().getCustomerFull().get("custpersonal");
         assertEquals("Waidi", personal.get("fstname"));
     }
+
+    @Test
+    void mapsCustomerAccountDetailsResponse() {
+        String rawResponse = """
+                {
+                  "fcubsheader": {"msgstat": "SUCCESS"},
+                  "fcubsbody": {
+                    "sttmsCustomerIO": null,
+                    "sttmsCustomerFull": {
+                      "custno": "054855",
+                      "stvwsStdaccqy": [
+                        {
+                          "accounttype": "S",
+                          "accstatus": "NORM",
+                          "acdesc": "Kamara Ibrahim Sesay",
+                          "acopendate": "2026-10-13T23:00:00.000+00:00",
+                          "branchcode": "101",
+                          "ccy": "SLE",
+                          "custacno": "1010548558972029"
+                        }
+                      ]
+                    },
+                    "fcubserrorresp": [],
+                    "fcubswarningresp": [
+                      {"warning": [{"wcode": "ST-SAVE-073", "wdesc": "Successfully Retrieved"}]}
+                    ]
+                  }
+                }
+                """;
+        WebClient webClient = WebClient.builder()
+                .baseUrl("http://customer-service")
+                .exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
+                        .header("Content-Type", "application/json")
+                        .body(rawResponse)
+                        .build()))
+                .build();
+
+        com.banking.api.dto.CustomerAccountDetailsRequest request =
+                new com.banking.api.dto.CustomerAccountDetailsRequest();
+        request.setCustno("054855");
+        CustomerResponse response = new CustomerService(webClient).accountDetails(request);
+
+        assertEquals("SUCCESS", response.getFcubsheader().getMsgstat());
+        Map<?, ?> details = response.getFcubsbody().getSttmsCustomerFull();
+        assertEquals("054855", details.get("custno"));
+        List<?> accounts = (List<?>) details.get("stvwsStdaccqy");
+        assertEquals("1010548558972029", ((Map<?, ?>) accounts.get(0)).get("custacno"));
+    }
 }
