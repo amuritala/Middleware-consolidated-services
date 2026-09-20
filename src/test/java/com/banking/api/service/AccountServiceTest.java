@@ -5,6 +5,7 @@ import com.banking.api.dto.AccountDetailsRequest;
 import com.banking.api.dto.AccountNumberRequest;
 import com.banking.api.dto.AccountCreationRequest;
 import com.banking.api.dto.StatementRequest;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.reactive.function.client.ClientResponse;
@@ -32,7 +33,10 @@ class AccountServiceTest {
                             .build());
                 })
                 .build();
-        AccountService accountService = new AccountService(webClient);
+        AccountService accountService = new AccountService(
+                webClient,
+                new ObjectMapper().findAndRegisterModules()
+        );
         AccountBalanceRequest balanceRequest = new AccountBalanceRequest("001", "123456");
         AccountNumberRequest accountNumberRequest = new AccountNumberRequest("123456");
 
