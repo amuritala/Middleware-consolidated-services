@@ -32,6 +32,7 @@ public class DownstreamAuditAspect {
         LocalDateTime start = LocalDateTime.now();
         String request = serialize(joinPoint.getArgs());
         String userId = currentUserId();
+        String serviceName = joinPoint.getSignature().getDeclaringType().getSimpleName();
         int status = 200;
         String response = null;
 
@@ -50,6 +51,7 @@ public class DownstreamAuditAspect {
             try {
                 DownstreamAudit audit = new DownstreamAudit();
                 audit.setUserId(userId);
+                audit.setServiceName(serviceName);
                 audit.setRequest(request);
                 audit.setResponse(response);
                 audit.setHttpStatus(status);
