@@ -1,0 +1,62 @@
+package com.banking.api.service;
+
+import com.banking.api.dto.AccountBalanceRequest;
+import com.banking.api.dto.AccountDetailsRequest;
+import com.banking.api.dto.AccountNumberRequest;
+import com.banking.api.dto.AccountCreationRequest;
+import com.banking.api.dto.StatementRequest;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.reactive.function.client.ClientResponse;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+class AccountServiceTest {
+
+    @Test
+    void delegatesAccountOperationsToExpectedEndpoints() {
+        List<String> paths = new ArrayList<>();
+        WebClient webClient = WebClient.builder()
+                .baseUrl("http://account-service")
+                .exchangeFunction(request -> {
+                    paths.add(request.url().getPath());
+                    return Mono.just(ClientResponse.create(HttpStatus.OK)
+                            .header("Content-Type", "application/json")
+                            .body("{\"fcubsheader\":{\"msgstat\":\"SUCCESS\"},\"fcubsbody\":{}}")
+                            .build());
+                })
+                .build();
+        AccountService accountService = new AccountService(webClient);
+        AccountBalanceRequest balanceRequest = new AccountBalanceRequest("001", "123456");
+        AccountNumberRequest accountNumberRequest = new AccountNumberRequest("123456");
+
+        var summaryBalance = accountService.summaryBalance(accountNumberRequest);
+        assertNotNull(summaryBalance.getFcubsbody());
+        assertEquals("SUCCESS", summaryBalance.getFcubsheader().getMsgstat());
+        assertNotNull(accountService.fullAccountBalance(accountNumberRequest).getFcubsbody());
+        assertNotNull(accountService.checkout(accountNumberRequest).getFcubsbody());
+        assertNotNull(accountService.accountDetails(
+                new AccountDetailsRequest("001", "123456")).getFcubsbody());
+        assertNotNull(accountService.statement(
+                new StatementRequest("987654", "statement-1")).getFcubsbody());
+        assertNotNull(accountService.checkBalance(balanceRequest).getFcubsbody());
+        assertNotNull(accountService.createAccount(
+                new AccountCreationRequest("001", "123456", "987654", "NGN", "SAV"))
+                .getFcubsbody());
+
+        assertEquals(List.of(
+                "/api/v1/Summarybal",
+                "/api/v1/fullAccbal",
+                "/api/v1/checkout",
+                "/api/v1/AccDetails",
+                "/api/v1/Statement",
+                "/api/v1/bal",
+                "/api/v1/createAcc"), paths);
+    }
+}
