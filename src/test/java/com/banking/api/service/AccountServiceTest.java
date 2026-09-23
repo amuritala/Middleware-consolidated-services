@@ -106,7 +106,7 @@ class AccountServiceTest {
                 new ObjectMapper().findAndRegisterModules()
         );
         AccountBalanceRequest balanceRequest = new AccountBalanceRequest("001", "123456");
-        AccountNumberRequest accountNumberRequest = new AccountNumberRequest("123456");
+        AccountNumberRequest accountNumberRequest = new AccountNumberRequest("123456" , "101");
 
         var summaryBalance = accountService.summaryBalance(accountNumberRequest);
         assertNotNull(summaryBalance.getFcubsbody());
@@ -221,7 +221,7 @@ class AccountServiceTest {
         FullAccountBalanceResponse response = new AccountService(
                 webClient,
                 new ObjectMapper().findAndRegisterModules()
-        ).fullAccountBalance(new AccountNumberRequest("1010089970301010"));
+        ).fullAccountBalance(new AccountNumberRequest("1010089970301010","101"));
 
         assertEquals("SUCCESS", response.getFcubsheader().getMsgstat());
         assertEquals("1010089970301010", response.getFcubsbody().getCustAccountFull().get("ACC"));
