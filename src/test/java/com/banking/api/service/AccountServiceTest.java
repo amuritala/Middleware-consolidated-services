@@ -3,6 +3,7 @@ package com.banking.api.service;
 import com.banking.api.dto.AccountBalanceRequest;
 import com.banking.api.dto.AccountResponse;
 import com.banking.api.dto.FullAccountBalanceResponse;
+import com.banking.api.dto.StatementResponse;
 import com.banking.api.dto.AccountDetailsRequest;
 import com.banking.api.dto.AccountNumberRequest;
 import com.banking.api.dto.AccountCreationRequest;
@@ -230,5 +231,50 @@ class AccountServiceTest {
         assertEquals(1585, ((Number) amountDates.get("ACYCURRBALANCE")).intValue());
         assertEquals("ST-SAVE-023", response.getFcubsbody().getFcubswarningresp().get(0)
                 .getWarning().get(0).getWcode());
+    }
+
+    @Test
+    void mapsStatementFailureResponseWithoutFailingOnStatementFields() {
+        String responseJson = """
+                {
+                  "FCUBSBODY": {
+                    "FCUBSERRORRESP": [
+                      {
+                        "ERROR": [
+                          {"ECODE": "ST-SAVE-024", "EDESC": "Failed to Query Data"},
+                          {"ECODE": "ST-VALS-002", "EDESC": "Record Not Found for Statement ID-00464:Customer No-00464"}
+                        ]
+                      }
+                    ],
+                    "FCUBSWARNINGRESP": [],
+                    "mainFull": null,
+                    "mainIO": {"CUSNO": "00464", "STMTID": "00464"}
+                  },
+                  "FCUBSHEADER": {
+                    "MSGSTAT": "FAILURE",
+                    "ACTION": "EXECUTEQUERY",
+                    "FUNCTIONID": "STDCDSTM"
+                  }
+                }
+                """;
+        WebClient webClient = WebClient.builder()
+                .baseUrl("http://account-service")
+                .exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
+                        .header("Content-Type", "application/json")
+                        .body(responseJson)
+                        .build()))
+                .build();
+
+        StatementResponse response = new AccountService(
+                webClient,
+                new ObjectMapper().findAndRegisterModules()
+        ).statement(new StatementRequest("00464", "00464"));
+
+        assertEquals("FAILURE", response.getFcubsheader().getMsgstat());
+        assertEquals("00464", response.getFcubsbody().getMainIO().get("CUSNO"));
+        assertEquals("ST-SAVE-024", response.getFcubsbody().getFcubserrorresp().get(0)
+                .getError().get(0).getEcode());
+        assertEquals("ST-VALS-002", response.getFcubsbody().getFcubserrorresp().get(0)
+                .getError().get(1).getEcode());
     }
 }

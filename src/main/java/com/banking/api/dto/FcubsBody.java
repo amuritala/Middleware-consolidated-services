@@ -25,6 +25,10 @@ public class FcubsBody {
     private Map<String, Object> sttmsCustomerFull;
     @JsonAlias({"sttmsCustomerIO", "STTMSCUSTOMERIO"})
     private Map<String, Object> sttmsCustomerIO;
+    @JsonAlias({"mainFull", "MAINFULL"})
+    private Map<String, Object> mainFull;
+    @JsonAlias({"mainIO", "MAINIO"})
+    private Map<String, Object> mainIO;
     private AccountBalanceResult accbalance;
     private CustomerStatQuery cumulativeIO;
     private CustomerStatFull cumulativeFull;
