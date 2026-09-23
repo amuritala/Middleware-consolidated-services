@@ -2,6 +2,7 @@ package com.banking.api.service;
 
 import com.banking.api.dto.AccountBalanceRequest;
 import com.banking.api.dto.AccountResponse;
+import com.banking.api.dto.FullAccountBalanceResponse;
 import com.banking.api.dto.AccountDetailsRequest;
 import com.banking.api.dto.AccountNumberRequest;
 import com.banking.api.dto.AccountCreationRequest;
@@ -180,6 +181,53 @@ class AccountServiceTest {
         assertEquals("001633", response.getFcubsbody().getCustDetailsFull().get("CUSTNO"));
         assertEquals(111679.43,
                 ((Number) response.getFcubsbody().getCustDetailsFull().get("ACBALANCE")).doubleValue());
+        assertEquals("ST-SAVE-023", response.getFcubsbody().getFcubswarningresp().get(0)
+                .getWarning().get(0).getWcode());
+    }
+
+    @Test
+    void mapsFullAccountBalanceResponseAndExposesOnlyMessageStatusHeader() {
+        String responseJson = """
+                {
+                  "FCUBSBODY": {
+                    "FCUBSERRORRESP": [],
+                    "FCUBSWARNINGRESP": [
+                      {"WARNING": [{"WCODE": "ST-SAVE-023", "WDESC": "Record Successfully Retrieved"}]}
+                    ],
+                    "custAccountFull": {
+                      "ACC": "1010089970301010",
+                      "ACCLS": "CACOP",
+                      "CCY": "SLE",
+                      "CUSTNO": "008997",
+                      "amountDates": {"ACYCURRBALANCE": 1585}
+                    },
+                    "custAccountIO": null
+                  },
+                  "FCUBSHEADER": {
+                    "MSGSTAT": "SUCCESS",
+                    "ACTION": "EXECUTEQUERY",
+                    "FUNCTIONID": "STDCUSAC"
+                  }
+                }
+                """;
+        WebClient webClient = WebClient.builder()
+                .baseUrl("http://account-service")
+                .exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
+                        .header("Content-Type", "application/json")
+                        .body(responseJson)
+                        .build()))
+                .build();
+
+        FullAccountBalanceResponse response = new AccountService(
+                webClient,
+                new ObjectMapper().findAndRegisterModules()
+        ).fullAccountBalance(new AccountNumberRequest("1010089970301010"));
+
+        assertEquals("SUCCESS", response.getFcubsheader().getMsgstat());
+        assertEquals("1010089970301010", response.getFcubsbody().getCustAccountFull().get("ACC"));
+        assertEquals("CACOP", response.getFcubsbody().getCustAccountFull().get("ACCLS"));
+        Map<?, ?> amountDates = (Map<?, ?>) response.getFcubsbody().getCustAccountFull().get("amountDates");
+        assertEquals(1585, ((Number) amountDates.get("ACYCURRBALANCE")).intValue());
         assertEquals("ST-SAVE-023", response.getFcubsbody().getFcubswarningresp().get(0)
                 .getWarning().get(0).getWcode());
     }
