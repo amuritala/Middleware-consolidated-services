@@ -12,4 +12,7 @@ public class AccountNumberRequest {
 
     @NotBlank(message = "Account number cannot be empty")
     private String custacno;
+    @NotBlank(message = "Account Branch cannot be empty")
+    private String branchCode;
+
 }
