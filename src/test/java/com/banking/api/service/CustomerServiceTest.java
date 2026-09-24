@@ -199,4 +199,59 @@ class CustomerServiceTest {
         List<?> accounts = (List<?>) details.get("stvwsStdaccqy");
         assertEquals("1010548558972029", ((Map<?, ?>) accounts.get(0)).get("custacno"));
     }
+
+    @Test
+    void mapsAmountBlockResponseAndPreservesOnlyMessageStatus() {
+        String rawResponse = """
+                {
+                  "fcubsheader": {
+                    "source": "FCAT",
+                    "operation": "CreateAmtBlk",
+                    "msgstat": "SUCCESS",
+                    "functionid": "CADAMBLK"
+                  },
+                  "fcubsbody": {
+                    "amountBlocksFull": {
+                      "acc": "1030046420801014",
+                      "amtblkno": "AB34252",
+                      "amt": 10,
+                      "expdate": null,
+                      "rem": "testing",
+                      "ablktype": "F",
+                      "referenceno": "2234",
+                      "branch": "103",
+                      "verifyavlbal": "N",
+                      "udfdetails": []
+                    },
+                    "fcubserrorresp": [],
+                    "fcubswarningresp": [
+                      {
+                        "warning": [
+                          {
+                            "wcode": "ST-SAVE-002",
+                            "wdesc": "Record Successfully Saved and Authorized"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+                """;
+        WebClient webClient = WebClient.builder()
+                .baseUrl("http://customer-service")
+                .exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
+                        .header("Content-Type", "application/json")
+                        .body(rawResponse)
+                        .build()))
+                .build();
+
+        CustomerResponse response = new CustomerService(webClient)
+                .amountBlock(new com.banking.api.dto.AmountBlockRequest());
+
+        assertEquals("SUCCESS", response.getFcubsheader().getMsgstat());
+        assertEquals("1030046420801014", response.getFcubsbody().getAmountBlocksFull().get("acc"));
+        assertEquals("AB34252", response.getFcubsbody().getAmountBlocksFull().get("amtblkno"));
+        assertEquals("ST-SAVE-002", response.getFcubsbody().getFcubswarningresp().get(0)
+                .getWarning().get(0).getWcode());
+    }
 }

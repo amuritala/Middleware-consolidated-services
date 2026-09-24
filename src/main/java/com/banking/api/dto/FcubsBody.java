@@ -29,6 +29,8 @@ public class FcubsBody {
     private Map<String, Object> mainFull;
     @JsonAlias({"mainIO", "MAINIO"})
     private Map<String, Object> mainIO;
+    @JsonAlias({"amountBlocksFull", "AMOUNTBLOCKSFULL"})
+    private Map<String, Object> amountBlocksFull;
     private AccountBalanceResult accbalance;
     private CustomerStatQuery cumulativeIO;
     private CustomerStatFull cumulativeFull;
