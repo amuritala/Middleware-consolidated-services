@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import javax.xml.datatype.XMLGregorianCalendar;
 
 @Data
 @NoArgsConstructor
@@ -14,8 +15,8 @@ public class AmountBlockRequest {
     private String ablktype;
     private BigDecimal amt;
     private String referenceno;
-    private String expdate;
-    private String effdate;
+    private XMLGregorianCalendar expdate;
+    private XMLGregorianCalendar effdate;
     private String amtblkno;
     private String holddesc;
     private String branch;

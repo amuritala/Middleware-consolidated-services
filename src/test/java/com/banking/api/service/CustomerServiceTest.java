@@ -254,4 +254,34 @@ class CustomerServiceTest {
         assertEquals("ST-SAVE-002", response.getFcubsbody().getFcubswarningresp().get(0)
                 .getWarning().get(0).getWcode());
     }
+
+    @Test
+    void acceptsAmountBlockRequestContract() throws Exception {
+        String requestJson = """
+                {
+                  "rem": "string",
+                  "acc": "string",
+                  "ablktype": "string",
+                  "amt": 0,
+                  "referenceno": "string",
+                  "expdate": "2026-09-23T20:32:04.094Z",
+                  "effdate": "2026-09-23T20:32:04.094Z",
+                  "amtblkno": "string",
+                  "holddesc": "string",
+                  "branch": "string"
+                }
+                """;
+
+        com.banking.api.dto.AmountBlockRequest request = new ObjectMapper()
+                .findAndRegisterModules()
+                .readValue(requestJson, com.banking.api.dto.AmountBlockRequest.class);
+
+        assertEquals("string", request.getRem());
+        assertEquals("string", request.getAcc());
+        assertEquals(0, request.getAmt().intValue());
+        assertEquals("2026-09-23T20:32:04.094Z", request.getExpdate().toString());
+        assertEquals("2026-09-23T20:32:04.094Z", request.getEffdate().toString());
+        assertEquals("string", request.getAmtblkno());
+        assertEquals("string", request.getBranch());
+    }
 }
