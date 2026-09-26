@@ -183,4 +183,80 @@ class DeServiceTest {
         assertEquals("GW-ROUT0003", response.getFcubsbody().getFcubserrorresp().get(0)
                 .getError().get(0).getEcode());
     }
+
+    @Test
+    void mapsUppercaseSingleDebitCreditJournalSuccessResponse() {
+        String rawResponse = """
+                {
+                  "FCUBSBODY": {
+                    "FCUBSERRORRESP": [],
+                    "FCUBSWARNINGRESP": [
+                      {"WARNING": [{"WCODE": "ST-SAVE-052", "WDESC": "Successfully Saved and Authorized"}]}
+                    ],
+                    "detbsJrnlTxnMasterFull": {
+                      "AUTHSTAT": "U",
+                      "BATCHNO": "kjkj",
+                      "BRANCHCODE": "103",
+                      "CCY": "SLE",
+                      "CHECHKERID": "TAKEON02",
+                      "CURRNO": 1,
+                      "MAKER": "TAKEON02",
+                      "RECNO": 1,
+                      "REFERENCENO": "103kjkj262870001",
+                      "TOTALCR": 100,
+                      "TOTALDR": 100,
+                      "TOTALNO": 1,
+                      "TXNSTAT": "A",
+                      "VALUEDATE": "2026-10-13T23:00:00.000Z",
+                      "detbsBatchMaster": {
+                        "BATCHNO": "kjkj",
+                        "CREDIT": 100,
+                        "CRENTTOTAL": 100,
+                        "DEBIT": 100,
+                        "DRENTTOTAL": 100,
+                        "DESCRIPTION": "pass entry test"
+                      },
+                      "detbsJrnlTxnDetail": [
+                        {
+                          "ACCORGL": "G",
+                          "ACCOUNT": "150320368",
+                          "AMOUNT": 100,
+                          "BRANCHCODE": "103",
+                          "CCY": "SLE",
+                          "DRCR": "D",
+                          "EXCHRATE": 1,
+                          "LCYAMOUNT": 100,
+                          "SERIALNO": 1,
+                          "TXNCODE": "201",
+                          "USERREFNO": "45546"
+                        }
+                      ],
+                      "devwsBatchMaster": null,
+                      "misdetails": {"CALCMETH1": "1"}
+                    }
+                  },
+                  "FCUBSHEADER": {
+                    "MSGSTAT": "SUCCESS",
+                    "OPERATION": "CreateMjrnlbook"
+                  }
+                }
+                """;
+        WebClient webClient = WebClient.builder()
+                .baseUrl("http://de-service")
+                .exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
+                        .header("Content-Type", "application/json")
+                        .body(rawResponse)
+                        .build()))
+                .build();
+
+        DeResponse response = new DeService(webClient).multiJournal2(new MultiDeJournalRequest());
+
+        MultiJrnlBookFull full = response.getFcubsbody().getDetbsJrnlTxnMasterFull();
+        assertEquals("SUCCESS", response.getFcubsheader().getMsgstat());
+        assertEquals("103kjkj262870001", full.getReferenceno());
+        assertEquals(0, full.getTotaldr().compareTo(new java.math.BigDecimal("100")));
+        assertEquals("kjkj", full.getDetbsBatchMaster().getBatchno());
+        assertEquals("150320368", full.getDetbsJrnlTxnDetail().get(0).getAccount());
+        assertEquals("1", full.getMisdetails().get("CALCMETH1").asText());
+    }
 }
