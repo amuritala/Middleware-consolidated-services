@@ -256,6 +256,49 @@ class CustomerServiceTest {
     }
 
     @Test
+    void mapsQueryAmountBlockFailureResponseWithoutDeserializationFailure() {
+        String rawResponse = """
+                {
+                  "fcubsheader": {
+                    "msgstat": "FAILURE",
+                    "operation": "QueryAmtBlk",
+                    "functionid": "CADAMBLK"
+                  },
+                  "fcubsbody": {
+                    "amountBlocksIO": {"amtblkno": "AB342526"},
+                    "amountBlocksFull": null,
+                    "fcubserrorresp": [
+                      {
+                        "error": [
+                          {"ecode": "ST-QRY-101", "edesc": "Branch Access not available"},
+                          {"ecode": "ST-SAVE-024", "edesc": "Failed to Query Data"}
+                        ]
+                      }
+                    ],
+                    "fcubswarningresp": []
+                  }
+                }
+                """;
+        WebClient webClient = WebClient.builder()
+                .baseUrl("http://customer-service")
+                .exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
+                        .header("Content-Type", "application/json")
+                        .body(rawResponse)
+                        .build()))
+                .build();
+
+        CustomerResponse response = new CustomerService(webClient)
+                .queryAmountBlock(new AmtBlockNoRequest());
+
+        assertEquals("FAILURE", response.getFcubsheader().getMsgstat());
+        assertEquals("AB342526", response.getFcubsbody().getAmountBlocksIO().get("amtblkno"));
+        assertEquals("ST-QRY-101", response.getFcubsbody().getFcubserrorresp().get(0)
+                .getError().get(0).getEcode());
+        assertEquals("ST-SAVE-024", response.getFcubsbody().getFcubserrorresp().get(0)
+                .getError().get(1).getEcode());
+    }
+
+    @Test
     void acceptsAmountBlockRequestContract() throws Exception {
         String requestJson = """
                 {
