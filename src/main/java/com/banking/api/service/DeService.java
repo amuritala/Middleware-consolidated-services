@@ -15,7 +15,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Service
 @Slf4j
 public class DeService {
-
+    public String serviceName = "De Service";
     private final WebClient webClient;
     private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 

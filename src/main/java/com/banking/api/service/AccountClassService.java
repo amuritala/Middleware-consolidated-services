@@ -16,7 +16,7 @@ import java.util.List;
 @Service
 @Slf4j
 public class AccountClassService {
-
+    public String serviceName = "Account Service";
     private final WebClient webClient;
     private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 

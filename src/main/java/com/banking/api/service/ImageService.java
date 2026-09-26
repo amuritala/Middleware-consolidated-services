@@ -12,7 +12,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Service
 @Slf4j
 public class ImageService {
-
+    public String serviceName = "Image Service";
     private final WebClient webClient;
     private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 

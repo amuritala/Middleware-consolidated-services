@@ -18,7 +18,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Service
 @Slf4j
 public class CustomerService {
-
+    public String serviceName = "Customer Service";
     private final WebClient webClient;
     private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 

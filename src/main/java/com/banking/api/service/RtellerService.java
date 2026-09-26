@@ -18,6 +18,7 @@ import reactor.core.publisher.Mono;
 @Service
 @Slf4j
 public class RtellerService {
+    public String serviceName = "Rteller Service";
     private final WebClient webClient;
     private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
     public RtellerService(@Qualifier("rtellerServiceWebClient") WebClient webClient) {

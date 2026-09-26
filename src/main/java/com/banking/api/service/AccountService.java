@@ -23,7 +23,7 @@ import java.util.Objects;
 @Service
 @Slf4j
 public class AccountService {
-
+    public String serviceName = "Account Service";
     private static final SecureRandom ACCOUNT_NUMBER_RANDOM = new SecureRandom();
 
     private final WebClient webClient;
