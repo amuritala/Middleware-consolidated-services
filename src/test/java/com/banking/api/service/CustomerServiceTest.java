@@ -299,6 +299,46 @@ class CustomerServiceTest {
     }
 
     @Test
+    void mapsSuccessfulQueryAmountBlockResponseWithNullIoAndFullData() {
+        String rawResponse = """
+                {
+                  "fcubsheader": {"msgstat": "SUCCESS"},
+                  "fcubsbody": {
+                    "amountBlocksIO": null,
+                    "amountBlocksFull": {
+                      "acc": "1010288510101018",
+                      "amtblkno": "1234",
+                      "amt": 20,
+                      "rem": "block an amount",
+                      "ablktype": "F",
+                      "referenceno": "344455",
+                      "branch": "101",
+                      "authstat": "A"
+                    },
+                    "fcubserrorresp": [],
+                    "fcubswarningresp": [
+                      {"warning": [{"wcode": "ST-SAVE-023", "wdesc": "Record Successfully Retrieved"}]}
+                    ]
+                  }
+                }
+                """;
+        WebClient webClient = WebClient.builder()
+                .baseUrl("http://customer-service")
+                .exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
+                        .header("Content-Type", "application/json")
+                        .body(rawResponse)
+                        .build()))
+                .build();
+
+        CustomerResponse response = new CustomerService(webClient)
+                .queryAmountBlock(new AmtBlockNoRequest());
+
+        assertEquals("SUCCESS", response.getFcubsheader().getMsgstat());
+        assertEquals("1234", response.getFcubsbody().getAmountBlocksFull().get("amtblkno"));
+        assertEquals("1010288510101018", response.getFcubsbody().getAmountBlocksFull().get("acc"));
+    }
+
+    @Test
     void acceptsAmountBlockRequestContract() throws Exception {
         String requestJson = """
                 {

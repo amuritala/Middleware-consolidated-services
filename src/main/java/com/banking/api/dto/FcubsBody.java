@@ -2,6 +2,7 @@ package com.banking.api.dto;
 
 import lombok.Data;
 import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 import java.util.Map;
@@ -31,7 +32,8 @@ public class FcubsBody {
     private Map<String, Object> mainIO;
     @JsonAlias({"amountBlocksFull", "AMOUNTBLOCKSFULL"})
     private Map<String, Object> amountBlocksFull;
-    @JsonAlias({"amountBlocksIO", "AMOUNTBLOCKSIO"})
+    @JsonProperty("amountBlocksIO")
+    @JsonAlias("AMOUNTBLOCKSIO")
     private Map<String, Object> amountBlocksIO;
     private AccountBalanceResult accbalance;
     private CustomerStatQuery cumulativeIO;
