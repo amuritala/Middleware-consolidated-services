@@ -8,5 +8,5 @@ import lombok.NoArgsConstructor;
 public class DeResponse {
 
     private FcubsResponseHeader fcubsheader;
-    private FcubsBody fcubsbody;
+    private FcubsBody FCUBSBODY;
 }

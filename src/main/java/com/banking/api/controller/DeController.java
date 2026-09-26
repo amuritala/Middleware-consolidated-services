@@ -1,10 +1,6 @@
 package com.banking.api.controller;
 
-import com.banking.api.dto.AuthorizeRequest;
-import com.banking.api.dto.CreateTellerRequest;
-import com.banking.api.dto.DeResponse;
-import com.banking.api.dto.JnrMasterFullTemplate;
-import com.banking.api.dto.MultiDeJournalRequest;
+import com.banking.api.dto.*;
 import com.banking.api.service.DeService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
@@ -25,27 +21,27 @@ public class DeController {
     private final DeService deService;
 
     @PreAuthorize("hasAuthority('ROLE_CREATE_DE_JOURNAL')")
-    @PostMapping("/multi-de-journal")
+    @PostMapping("/multi-de-bulk-journal")
     public ResponseEntity<DeResponse> multiDeJournal(@RequestBody MultiDeJournalRequest request) {
         return ResponseEntity.ok(deService.multiDeJournal(request));
     }
 
     @PreAuthorize("hasAuthority('ROLE_CREATE_DE_JOURNAL')")
-    @PostMapping("/multi-journal-v2")
+    @PostMapping("/de-single-debit-credit-journal")
     public ResponseEntity<DeResponse> multiJournal2(@RequestBody MultiDeJournalRequest request) {
         return ResponseEntity.ok(deService.multiJournal2(request));
     }
 
     @PreAuthorize("hasAuthority('ROLE_CREATE_DE_TEMPLATE')")
-    @PostMapping("/multi-template")
-    public ResponseEntity<DeResponse> multiTemplate(@RequestBody JnrMasterFullTemplate request) {
-        return ResponseEntity.ok(deService.multiTemplate(request));
+    @PostMapping("/de-reserval")
+    public ResponseEntity<DeResponse> multiTemplate(@RequestBody ReversalRequest request) {
+        return ResponseEntity.ok(deService.reverseJournal(request));
     }
 
-    @PreAuthorize("hasAuthority('ROLE_CREATE_TELLER')")
-    @PostMapping("/create-teller")
-    public ResponseEntity<DeResponse> createTeller(@RequestBody CreateTellerRequest request) {
-        return ResponseEntity.ok(deService.createTeller(request));
+    @PreAuthorize("hasAuthority('ROLE_QUERY_JOURNAL')")
+    @PostMapping("/query-journal")
+    public ResponseEntity<DeResponse> createTeller(@RequestBody QueryRequest request) {
+        return ResponseEntity.ok(deService.queryJournal(request));
     }
 
     @PreAuthorize("hasAuthority('ROLE_AUTHORIZE_DE_TRANSACTION')")

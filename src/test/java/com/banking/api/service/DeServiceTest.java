@@ -1,9 +1,6 @@
 package com.banking.api.service;
 
-import com.banking.api.dto.AuthorizeRequest;
-import com.banking.api.dto.CreateTellerRequest;
-import com.banking.api.dto.JnrMasterFullTemplate;
-import com.banking.api.dto.MultiDeJournalRequest;
+import com.banking.api.dto.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.reactive.function.client.ClientResponse;
@@ -35,15 +32,15 @@ class DeServiceTest {
         assertEquals("R1", service.multiDeJournal(new MultiDeJournalRequest())
                 .getFcubsbody().getDetbsJrnlTxnMasterFull().getReferenceno());
         service.multiJournal2(new MultiDeJournalRequest());
-        service.multiTemplate(new JnrMasterFullTemplate());
-        service.createTeller(new CreateTellerRequest());
+        service.reverseJournal(new ReversalRequest());
+        service.queryJournal(new QueryRequest());
         service.authorize(new AuthorizeRequest());
 
         assertEquals(List.of(
                 "/api/v1/multiDeJournal",
                 "/api/v1/MultiJrn2",
-                "/api/v1/MultiJounerV2",
-                "/api/v1/CreateTeller",
+                "/api/v1/Reserval",
+                "/api/v1/QueryMultiJrn",
                 "/api/v1/Autorize"), paths);
     }
 }

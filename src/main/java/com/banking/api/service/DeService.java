@@ -1,10 +1,6 @@
 package com.banking.api.service;
 
-import com.banking.api.dto.AuthorizeRequest;
-import com.banking.api.dto.CreateTellerRequest;
-import com.banking.api.dto.DeResponse;
-import com.banking.api.dto.JnrMasterFullTemplate;
-import com.banking.api.dto.MultiDeJournalRequest;
+import com.banking.api.dto.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -24,19 +20,19 @@ public class DeService {
     }
 
     public DeResponse multiDeJournal(MultiDeJournalRequest request) {
-        return post("api/v1/multiDeJournal", request, "creating multi journal");
+        return post("api/v1/multiDeJournalBulkDebitCredit", request, "creating multi journal");
     }
 
     public DeResponse multiJournal2(MultiDeJournalRequest request) {
-        return post("api/v1/MultiJrn2", request, "creating multi journal v2");
+        return post("api/v1/DeJrnSingleDebitCredit", request, "creating multi journal v2");
     }
 
-    public DeResponse multiTemplate(JnrMasterFullTemplate request) {
-        return post("api/v1/MultiJounerV2", request, "creating journal template");
+    public DeResponse reverseJournal(ReversalRequest request) {
+        return post("api/v1/ReverseJrn", request, "creating journal template");
     }
 
-    public DeResponse createTeller(CreateTellerRequest request) {
-        return post("api/v1/CreateTeller", request, "creating teller transaction");
+    public DeResponse queryJournal(QueryRequest request) {
+        return post("api/v1/QueryMultiJrn", request, "creating teller transaction");
     }
 
     public DeResponse authorize(AuthorizeRequest request) {
