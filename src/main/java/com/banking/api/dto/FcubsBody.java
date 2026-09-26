@@ -40,6 +40,8 @@ public class FcubsBody {
     private CustomerStatFull cumulativeFull;
     private AdhocStatementResult custAccStmtAdhocRequest;
     private MultiJrnlBookFull detbsJrnlTxnMasterFull;
+    @JsonAlias({"detbsJrnlTxnMasterIO", "DETBSJRNLTXNMASTERIO"})
+    private Map<String, Object> detbsJrnlTxnMasterIO;
     private Map<String, Object> customerFull;
     private AccountStatusMaster accStatMasterFull;
     private Map<String, Object> transactionDetails;

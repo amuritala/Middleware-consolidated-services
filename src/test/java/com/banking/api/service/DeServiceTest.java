@@ -37,10 +37,56 @@ class DeServiceTest {
         service.authorize(new AuthorizeRequest());
 
         assertEquals(List.of(
-                "/api/v1/multiDeJournal",
-                "/api/v1/MultiJrn2",
-                "/api/v1/Reserval",
+                "/api/v1/multiDeJournalBulkDebitCredit",
+                "/api/v1/DeJrnSingleDebitCredit",
+                "/api/v1/ReverseJrn",
                 "/api/v1/QueryMultiJrn",
                 "/api/v1/Autorize"), paths);
+    }
+
+    @Test
+    void mapsUppercaseQueryJournalFailureResponse() {
+        String rawResponse = """
+                {
+                  "FCUBSBODY": {
+                    "FCUBSERRORRESP": [
+                      {
+                        "ERROR": [
+                          {
+                            "ECODE": "GW-ROUT0003",
+                            "EDESC": "No data found for the service, operation and source combination"
+                          }
+                        ]
+                      }
+                    ],
+                    "FCUBSWARNINGRESP": [],
+                    "detbsJrnlTxnMasterFull": null,
+                    "detbsJrnlTxnMasterIO": {"REFERENCENO": "100qoqt262860001"}
+                  },
+                  "FCUBSHEADER": {
+                    "ACTION": null,
+                    "BRANCH": "100",
+                    "FUNCTIONID": null,
+                    "MSGSTAT": "FAILURE",
+                    "OPERATION": "QueryMjrnlbook",
+                    "SERVICE": "FCUBSDEService"
+                  }
+                }
+                """;
+        WebClient webClient = WebClient.builder()
+                .baseUrl("http://de-service")
+                .exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
+                        .header("Content-Type", "application/json")
+                        .body(rawResponse)
+                        .build()))
+                .build();
+
+        DeResponse response = new DeService(webClient).queryJournal(new QueryRequest());
+
+        assertEquals("FAILURE", response.getFcubsheader().getMsgstat());
+        assertEquals("100qoqt262860001",
+                response.getFcubsbody().getDetbsJrnlTxnMasterIO().get("REFERENCENO"));
+        assertEquals("GW-ROUT0003", response.getFcubsbody().getFcubserrorresp().get(0)
+                .getError().get(0).getEcode());
     }
 }
