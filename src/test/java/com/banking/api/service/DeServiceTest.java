@@ -11,8 +11,46 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class DeServiceTest {
+
+    @Test
+    void mapsTypedBatchMasterObjectsInMultiDeJournalRequest() throws Exception {
+        String requestJson = """
+                {
+                  "detbsBatchMaster": {
+                    "batchno": "kjkj",
+                    "description": "pass entry test with bayo and moruff ",
+                    "debit": 100,
+                    "credit": 100,
+                    "drenttotal": 100,
+                    "crenttotal": 100
+                  },
+                  "devwsBatchMaster": {
+                    "batchnumber": "kjkj",
+                    "description": "pass entry test with bayo and moruff ",
+                    "debit": "100",
+                    "credit": "100",
+                    "balancing": "Y"
+                  }
+                }
+                """;
+
+        MultiDeJournalRequest request = new com.fasterxml.jackson.databind.ObjectMapper()
+                .findAndRegisterModules()
+                .readValue(requestJson, MultiDeJournalRequest.class);
+
+        assertNotNull(request.getDetbsBatchMaster());
+        assertEquals("kjkj", request.getDetbsBatchMaster().getBatchno());
+        assertEquals(0, request.getDetbsBatchMaster().getDebit().compareTo(new java.math.BigDecimal("100")));
+        assertEquals(0, request.getDetbsBatchMaster().getDrenttotal()
+                .compareTo(new java.math.BigDecimal("100")));
+        assertNotNull(request.getDevwsBatchMaster());
+        assertEquals("kjkj", request.getDevwsBatchMaster().getBatchnumber());
+        assertEquals("100", request.getDevwsBatchMaster().getDebit());
+        assertEquals("Y", request.getDevwsBatchMaster().getBalancing());
+    }
 
     @Test
     void delegatesAllDeOperationsToExpectedEndpoints() {

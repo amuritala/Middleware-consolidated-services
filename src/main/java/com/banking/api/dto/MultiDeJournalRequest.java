@@ -31,8 +31,8 @@ public class MultiDeJournalRequest {
     private BigDecimal recno;
     private BigDecimal totalno;
     private List<JsonNode> detbsJrnlTxnDetail;
-    private JsonNode detbsBatchMaster;
-    private JsonNode devwsBatchMaster;
+    private DetbsBatchMaster detbsBatchMaster;
+    private DevwsBatchMaster devwsBatchMaster;
     private JsonNode misdetails;
     private List<JsonNode> txnudfdetails;
 }
