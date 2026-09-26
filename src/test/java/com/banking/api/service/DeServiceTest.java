@@ -53,6 +53,62 @@ class DeServiceTest {
     }
 
     @Test
+    void mapsTypedJournalTransactionDetails() throws Exception {
+        String requestJson = """
+                {
+                  "detbsJrnlTxnDetail": [
+                    {
+                      "serialno": 1,
+                      "userrefno": "45546",
+                      "drcr": "D",
+                      "branchcode": "103",
+                      "accorgl": "G",
+                      "ccy": "SLE",
+                      "amount": 100,
+                      "txncode": "201",
+                      "instrumentno": "",
+                      "lcyamount": 100,
+                      "addltext": "",
+                      "acdesc": "",
+                      "customer": "",
+                      "exchrate": 1,
+                      "account": "150320368"
+                    },
+                    {
+                      "serialno": 2,
+                      "userrefno": "45546",
+                      "drcr": "C",
+                      "branchcode": "103",
+                      "accorgl": "A",
+                      "ccy": "SLE",
+                      "amount": 100,
+                      "txncode": "201",
+                      "instrumentno": "",
+                      "lcyamount": 100,
+                      "addltext": "",
+                      "acdesc": "",
+                      "customer": "",
+                      "exchrate": 1,
+                      "account": "1030046420801014"
+                    }
+                  ]
+                }
+                """;
+
+        MultiDeJournalRequest request = new com.fasterxml.jackson.databind.ObjectMapper()
+                .findAndRegisterModules()
+                .readValue(requestJson, MultiDeJournalRequest.class);
+
+        assertEquals(2, request.getDetbsJrnlTxnDetail().size());
+        assertEquals(1, request.getDetbsJrnlTxnDetail().get(0).getSerialno());
+        assertEquals("D", request.getDetbsJrnlTxnDetail().get(0).getDrcr());
+        assertEquals("150320368", request.getDetbsJrnlTxnDetail().get(0).getAccount());
+        assertEquals(0, request.getDetbsJrnlTxnDetail().get(1).getExchrate()
+                .compareTo(new java.math.BigDecimal("1")));
+        assertEquals("1030046420801014", request.getDetbsJrnlTxnDetail().get(1).getAccount());
+    }
+
+    @Test
     void delegatesAllDeOperationsToExpectedEndpoints() {
         List<String> paths = new ArrayList<>();
         WebClient webClient = WebClient.builder()

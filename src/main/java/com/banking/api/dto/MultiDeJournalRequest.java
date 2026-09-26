@@ -1,6 +1,5 @@
 package com.banking.api.dto;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -30,9 +29,9 @@ public class MultiDeJournalRequest {
     private String fundid;
     private BigDecimal recno;
     private BigDecimal totalno;
-    private List<JsonNode> detbsJrnlTxnDetail;
+    private List<DetbsJrnlTxnDetail> detbsJrnlTxnDetail;
     private DetbsBatchMaster detbsBatchMaster;
     private DevwsBatchMaster devwsBatchMaster;
-    private JsonNode misdetails;
-    private List<JsonNode> txnudfdetails;
+    private com.fasterxml.jackson.databind.JsonNode misdetails;
+    private List<com.fasterxml.jackson.databind.JsonNode> txnudfdetails;
 }
