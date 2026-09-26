@@ -2,9 +2,11 @@ package com.banking.api.dto;
 
 import lombok.Data;
 import com.fasterxml.jackson.annotation.JsonAlias;
-import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.List;
 import java.util.Map;
@@ -12,8 +14,9 @@ import java.util.Map;
 @Data
 public class FcubsBody {
 
+    private static final ObjectMapper RESPONSE_MAPPER = new ObjectMapper();
+
     private List<ErrorResponse> fcubserrorresp;
-    @JsonAlias({"fcubswarningresp", "FCUBSWARNINGRESP"})
     private List<WarningResponse> fcubswarningresp;
     @JsonAlias({"custAccountFull", "CUSTACCOUNTFULL"})
     private Map<String, Object> custAccountFull;
@@ -55,16 +58,31 @@ public class FcubsBody {
     private ImageSignature svvwsSifsigmasterIO;
     private ImageSignature svvwsSifsigmasterFull;
 
+    @JsonSetter("fcubswarningresp")
+    public void setFcubswarningresp(JsonNode warnings) {
+        if (warnings == null || warnings.isNull()) {
+            this.fcubswarningresp = null;
+        } else if (warnings.isArray()) {
+            this.fcubswarningresp = RESPONSE_MAPPER.convertValue(
+                    warnings, new TypeReference<>() {});
+        } else {
+            this.fcubswarningresp = List.of(RESPONSE_MAPPER.convertValue(warnings, WarningResponse.class));
+        }
+    }
+
+    @JsonSetter("FCUBSWARNINGRESP")
+    public void setUppercaseFcubswarningresp(JsonNode warnings) {
+        setFcubswarningresp(warnings);
+    }
+
     @JsonSetter("fcubserrorresp")
     public void setFcubserrorresp(JsonNode errors) {
         if (errors == null || errors.isNull()) {
             this.fcubserrorresp = null;
         } else if (errors.isArray()) {
-            this.fcubserrorresp = new com.fasterxml.jackson.databind.ObjectMapper()
-                    .convertValue(errors, new com.fasterxml.jackson.core.type.TypeReference<>() {});
+            this.fcubserrorresp = RESPONSE_MAPPER.convertValue(errors, new TypeReference<>() {});
         } else {
-            this.fcubserrorresp = List.of(new com.fasterxml.jackson.databind.ObjectMapper()
-                    .convertValue(errors, ErrorResponse.class));
+            this.fcubserrorresp = List.of(RESPONSE_MAPPER.convertValue(errors, ErrorResponse.class));
         }
     }
 

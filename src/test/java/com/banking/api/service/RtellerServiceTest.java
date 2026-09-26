@@ -5,6 +5,7 @@ import com.banking.api.dto.ProductRequest;
 import com.banking.api.dto.ReverseTransactionRequest;
 import com.banking.api.dto.RtellerResponse;
 import com.banking.api.dto.TransactionQueryRequest;
+import com.banking.api.dto.DebitCreditRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.reactive.function.client.ClientResponse;
@@ -122,5 +123,48 @@ class RtellerServiceTest {
                 .getError().get(0).getEcode());
         assertEquals("ST-VALS-002", response.getFcubsbody().getFcubserrorresp().get(0)
                 .getError().get(1).getEcode());
+    }
+
+    @Test
+    void mapsPassEntryResponseWithObjectWarningAndTransactionDetails() {
+        String rawResponse = """
+                {
+                  "FCUBSBODY": {
+                    "FCUBSERRORRESP": null,
+                    "FCUBSWARNINGRESP": {
+                      "WARNING": [
+                        {"WCODE": "GW-SAV-03", "WDESC": "Transaction completed Succesfully"}
+                      ]
+                    },
+                    "transactionDetails": {
+                      "ACCTITLE1": "LAPO MICROFIANCE LIMITED",
+                      "ACTAMT": 300,
+                      "ADVACC": "1010016330301010",
+                      "BOOKDATE": "<BOOKDATE xmlns=\\"http://fcubs.ofss.com/service/FCUBSRTService\\">2026-10-14</BOOKDATE>",
+                      "FCCREF": "101CHWL262870006",
+                      "FTDetails": [],
+                      "TXNDRCR": "D",
+                      "TXNAMT": 300
+                    }
+                  },
+                  "FCUBSHEADER": {"MSGSTAT": "SUCCESS", "OPERATION": "CreateTransaction"}
+                }
+                """;
+        WebClient webClient = WebClient.builder()
+                .baseUrl("http://rteller")
+                .exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
+                        .header("Content-Type", "application/json")
+                        .body(rawResponse)
+                        .build()))
+                .build();
+
+        RtellerResponse response = new RtellerService(webClient)
+                .passAccountEntry(new DebitCreditRequest());
+
+        assertEquals("SUCCESS", response.getFcubsheader().getMsgstat());
+        assertEquals("GW-SAV-03", response.getFcubsbody().getFcubswarningresp().get(0)
+                .getWarning().get(0).getWcode());
+        assertEquals("101CHWL262870006", response.getFcubsbody().getTransactionDetails().get("FCCREF"));
+        assertEquals("D", response.getFcubsbody().getTransactionDetails().get("TXNDRCR"));
     }
 }
