@@ -42,6 +42,10 @@ public class FcubsBody {
     private MultiJrnlBookFull detbsJrnlTxnMasterFull;
     @JsonAlias({"detbsJrnlTxnMasterIO", "DETBSJRNLTXNMASTERIO"})
     private Map<String, Object> detbsJrnlTxnMasterIO;
+    @JsonAlias({"RTProductFull", "RTPRODUCTFULL"})
+    private Map<String, Object> rtProductFull;
+    @JsonAlias({"RTProductIO", "RTPRODUCTIO"})
+    private Map<String, Object> rtProductIO;
     private Map<String, Object> customerFull;
     private AccountStatusMaster accStatMasterFull;
     private Map<String, Object> transactionDetails;

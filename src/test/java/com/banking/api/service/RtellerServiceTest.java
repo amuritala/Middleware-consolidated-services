@@ -3,6 +3,7 @@ package com.banking.api.service;
 import com.banking.api.dto.AuthorizeTransactionRequest;
 import com.banking.api.dto.ProductRequest;
 import com.banking.api.dto.ReverseTransactionRequest;
+import com.banking.api.dto.RtellerResponse;
 import com.banking.api.dto.TransactionQueryRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -45,5 +46,45 @@ class RtellerServiceTest {
                 "/api/v1/QueryTrasactiom",
                 "/api/v1/QueryProduct",
                 "/api/v1/AutorizeTrasactiom"), paths);
+    }
+
+    @Test
+    void mapsUppercaseQueryProductResponse() {
+        String rawResponse = """
+                {
+                  "FCUBSBODY": {
+                    "FCUBSERRORRESP": [],
+                    "FCUBSWARNINGRESP": [
+                      {"WARNING": [{"WCODE": "ST-SAVE-023", "WDESC": "Record Successfully Retrieved"}]}
+                    ],
+                    "RTProductFull": {
+                      "AUTHSTAT": "A",
+                      "PRDCD": "CHWL",
+                      "PRDDESC": "CASH WITHDRAWAL",
+                      "PRDGRP": "CASH",
+                      "MAXRTVARI": 100,
+                      "RTProductPreference": {"CASHGLPOST": "N", "TXNLIMIT": 5000000000}
+                    },
+                    "RTProductIO": null
+                  },
+                  "FCUBSHEADER": {"MSGSTAT": "SUCCESS", "OPERATION": "QueryRTProduct"}
+                }
+                """;
+        WebClient webClient = WebClient.builder()
+                .baseUrl("http://rteller")
+                .exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
+                        .header("Content-Type", "application/json")
+                        .body(rawResponse)
+                        .build()))
+                .build();
+
+        RtellerResponse response = new RtellerService(webClient)
+                .queryProduct(new ProductRequest());
+
+        assertEquals("SUCCESS", response.getFcubsheader().getMsgstat());
+        assertEquals("CHWL", response.getFcubsbody().getRtProductFull().get("PRDCD"));
+        assertEquals("CASH WITHDRAWAL", response.getFcubsbody().getRtProductFull().get("PRDDESC"));
+        assertEquals("ST-SAVE-023", response.getFcubsbody().getFcubswarningresp().get(0)
+                .getWarning().get(0).getWcode());
     }
 }
