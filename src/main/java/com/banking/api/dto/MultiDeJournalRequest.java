@@ -10,7 +10,7 @@ import java.util.List;
 @NoArgsConstructor
 public class MultiDeJournalRequest {
 
-    private String referenceno;
+    //private String referenceno;
     private String batchno;
     private BigDecimal currno;
     private String templatecode;
