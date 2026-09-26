@@ -87,4 +87,40 @@ class RtellerServiceTest {
         assertEquals("ST-SAVE-023", response.getFcubsbody().getFcubswarningresp().get(0)
                 .getWarning().get(0).getWcode());
     }
+
+    @Test
+    void mapsUppercaseQueryTransactionFailureResponse() {
+        String rawResponse = """
+                {
+                  "FCUBSBODY": {
+                    "FCUBSERRORRESP": {
+                      "ERROR": [
+                        {"ECODE": "ST-SAVE-024", "EDESC": "Failed to Query Data"},
+                        {"ECODE": "ST-VALS-002", "EDESC": "Record Not Found for FCAT"}
+                      ]
+                    },
+                    "FCUBSWARNINGRESP": null,
+                    "transactionDetailsFull": null
+                  },
+                  "FCUBSHEADER": {"MSGSTAT": "FAILURE", "OPERATION": "QueryTransaction"}
+                }
+                """;
+        WebClient webClient = WebClient.builder()
+                .baseUrl("http://rteller")
+                .exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
+                        .header("Content-Type", "application/json")
+                        .body(rawResponse)
+                        .build()))
+                .build();
+
+        RtellerResponse response = new RtellerService(webClient)
+                .queryTransaction(new TransactionQueryRequest());
+
+        assertEquals("FAILURE", response.getFcubsheader().getMsgstat());
+        assertEquals(1, response.getFcubsbody().getFcubserrorresp().size());
+        assertEquals("ST-SAVE-024", response.getFcubsbody().getFcubserrorresp().get(0)
+                .getError().get(0).getEcode());
+        assertEquals("ST-VALS-002", response.getFcubsbody().getFcubserrorresp().get(0)
+                .getError().get(1).getEcode());
+    }
 }

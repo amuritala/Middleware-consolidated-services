@@ -2,7 +2,9 @@ package com.banking.api.dto;
 
 import lombok.Data;
 import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.List;
 import java.util.Map;
@@ -10,7 +12,6 @@ import java.util.Map;
 @Data
 public class FcubsBody {
 
-    @JsonAlias({"fcubserrorresp", "FCUBSERRORRESP"})
     private List<ErrorResponse> fcubserrorresp;
     @JsonAlias({"fcubswarningresp", "FCUBSWARNINGRESP"})
     private List<WarningResponse> fcubswarningresp;
@@ -42,6 +43,8 @@ public class FcubsBody {
     private MultiJrnlBookFull detbsJrnlTxnMasterFull;
     @JsonAlias({"detbsJrnlTxnMasterIO", "DETBSJRNLTXNMASTERIO"})
     private Map<String, Object> detbsJrnlTxnMasterIO;
+    @JsonAlias({"transactionDetailsFull", "TRANSACTIONDETAILSFULL"})
+    private Map<String, Object> transactionDetailsFull;
     @JsonAlias({"RTProductFull", "RTPRODUCTFULL"})
     private Map<String, Object> rtProductFull;
     @JsonAlias({"RTProductIO", "RTPRODUCTIO"})
@@ -51,4 +54,22 @@ public class FcubsBody {
     private Map<String, Object> transactionDetails;
     private ImageSignature svvwsSifsigmasterIO;
     private ImageSignature svvwsSifsigmasterFull;
+
+    @JsonSetter("fcubserrorresp")
+    public void setFcubserrorresp(JsonNode errors) {
+        if (errors == null || errors.isNull()) {
+            this.fcubserrorresp = null;
+        } else if (errors.isArray()) {
+            this.fcubserrorresp = new com.fasterxml.jackson.databind.ObjectMapper()
+                    .convertValue(errors, new com.fasterxml.jackson.core.type.TypeReference<>() {});
+        } else {
+            this.fcubserrorresp = List.of(new com.fasterxml.jackson.databind.ObjectMapper()
+                    .convertValue(errors, ErrorResponse.class));
+        }
+    }
+
+    @JsonSetter("FCUBSERRORRESP")
+    public void setUppercaseFcubserrorresp(JsonNode errors) {
+        setFcubserrorresp(errors);
+    }
 }
