@@ -156,4 +156,53 @@ class AccountStatsServiceTest {
         assertEquals("ST-TD-004", response.getFcubsbody().getFcubserrorresp().get(0)
                 .getError().get(1).getEcode());
     }
+
+    @Test
+    void mapsUppercaseCustomerStatsFailureResponse() {
+        String rawResponse = """
+                {
+                  "FCUBSBODY": {
+                    "FCUBSERRORRESP": [
+                      {
+                        "ERROR": [
+                          {"ECODE": "ST-SAVE-024", "EDESC": "Failed to Query Data"},
+                          {
+                            "ECODE": "ST-VALS-002",
+                            "EDESC": "Record Not Found for Customer No-009520:Customer Acc No-1010089970301010:Branch Code-101"
+                          }
+                        ]
+                      }
+                    ],
+                    "FCUBSWARNINGRESP": [],
+                    "cumulativeFull": null,
+                    "cumulativeIO": {
+                      "BRANCHCODE": "101",
+                      "CUSTOMERACCNO": "1010089970301010",
+                      "CUSTOMERNO": "009520"
+                    }
+                  },
+                  "FCUBSHEADER": {
+                    "MSGSTAT": "FAILURE",
+                    "OPERATION": "QueryCustomerStat"
+                  }
+                }
+                """;
+        WebClient webClient = WebClient.builder()
+                .baseUrl("http://account-stats")
+                .exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
+                        .header("Content-Type", "application/json")
+                        .body(rawResponse)
+                        .build()))
+                .build();
+
+        AccountStatsResponse response = new AccountStatsService(webClient)
+                .queryCustomerStats(new CustomerQueryRequest("009520", "1010089970301010", "101"));
+
+        assertEquals("FAILURE", response.getFcubsheader().getMsgstat());
+        assertEquals("101", response.getFcubsbody().getCumulativeIO().getBranchcode());
+        assertEquals("009520", response.getFcubsbody().getCumulativeIO().getCustomerno());
+        assertEquals("1010089970301010", response.getFcubsbody().getCumulativeIO().getCustomeraccno());
+        assertEquals("ST-VALS-002", response.getFcubsbody().getFcubserrorresp().get(0)
+                .getError().get(1).getEcode());
+    }
 }
