@@ -14,9 +14,12 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
-  flyway:
-    baseline-on-migrate: true
-    baseline-version: 0
+    defer-datasource-initialization: false
+  sql:
+    init:
+      mode: always
+      # Deletes audit history at startup; Hibernate recreates the table from the entity mapping.
+      schema-locations: classpath:sql/drop-downstream-audit.sql
 
   security:
     oauth2:
