@@ -1,6 +1,5 @@
 package com.banking.api.dto;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -16,5 +15,5 @@ public class StatChangeRequest {
     private String acccurr;
     private String action;
     private String restrtype;
-    private List<JsonNode> accStatDetail;
+    private List<AccountStatDetailRequest> accStatDetail;
 }
