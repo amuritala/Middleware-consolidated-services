@@ -57,4 +57,56 @@ class AccountStatsServiceTest {
                 "/api/v1/QueryAuditTrail",
                 "/api/v1/QueryAccountTransaction"), paths);
     }
+
+    @Test
+    void mapsUppercaseAccountTransactionsResponse() {
+        String rawResponse = """
+                {
+                  "FCUBSBODY": {
+                    "FCUBSERRORRESP": [],
+                    "FCUBSWARNINGRESP": [],
+                    "accDetailsFull": {
+                      "ACCBRN": "101",
+                      "ACCNO": "1010089970301010",
+                      "NUMOFTRN": 50,
+                      "accTransaction": [
+                        {
+                          "ACBRN": "101",
+                          "ACCCY": "SLE",
+                          "ACNO": "1010089970301010",
+                          "DRBRIND": "C",
+                          "LCYAMT": 100,
+                          "MOD": "DE",
+                          "REFNO": "101kjjm262870001",
+                          "TRNCD": "201",
+                          "TRNDT": "2026-10-13T23:00:00.000Z",
+                          "VALDT": "2026-10-13T23:00:00.000Z"
+                        }
+                      ]
+                    },
+                    "accDetailsIO": null
+                  },
+                  "FCUBSHEADER": {
+                    "MSGSTAT": "SUCCESS",
+                    "OPERATION": "QueryAccTrns"
+                  }
+                }
+                """;
+        WebClient webClient = WebClient.builder()
+                .baseUrl("http://account-stats")
+                .exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
+                        .header("Content-Type", "application/json")
+                        .body(rawResponse)
+                        .build()))
+                .build();
+
+        AccountStatsResponse response = new AccountStatsService(webClient)
+                .queryAccountTransaction(new TransactionRequest(BigDecimal.TEN, "A001", "001"));
+
+        assertEquals("SUCCESS", response.getFcubsheader().getMsgstat());
+        assertEquals("1010089970301010", response.getFcubsbody().getAccDetailsFull().get("ACCNO"));
+        assertEquals(50, response.getFcubsbody().getAccDetailsFull().get("NUMOFTRN"));
+        List<?> transactions = (List<?>) response.getFcubsbody().getAccDetailsFull().get("accTransaction");
+        assertEquals("101kjjm262870001", ((java.util.Map<?, ?>) transactions.get(0)).get("REFNO"));
+    }
 }
