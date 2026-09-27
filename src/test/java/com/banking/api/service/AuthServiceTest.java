@@ -2,6 +2,7 @@ package com.banking.api.service;
 
 import com.banking.api.dto.AuthRequest;
 import com.banking.api.dto.AuthResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -35,7 +36,8 @@ class AuthServiceTest {
                             .build());
                 });
         AuthService service = new AuthService(
-                webClientBuilder, "http://keycloak", "banking", "banking-service-api", "client-secret");
+                        webClientBuilder, new ObjectMapper(),
+                        "http://keycloak", "banking", "banking-service-api", "client-secret");
         AuthRequest request = new AuthRequest();
         request.setUsername("customer");
         request.setPassword("password");
@@ -52,9 +54,9 @@ class AuthServiceTest {
                 WebClient.builder().exchangeFunction(request -> Mono.just(
                         ClientResponse.create(HttpStatus.UNAUTHORIZED)
                                 .header("Content-Type", "application/json")
-                                .body("{\"error\":\"invalid_grant\"}")
+                                .body("{\"error\":\"invalid_grant\",\"error_description\":\"Invalid user credentials\"}")
                                 .build())),
-                "http://keycloak", "banking", "banking-service-api", "client-secret");
+                new ObjectMapper(), "http://keycloak", "banking", "banking-service-api", "client-secret");
         AuthRequest request = new AuthRequest();
         request.setUsername("customer");
         request.setPassword("incorrect");
@@ -63,5 +65,80 @@ class AuthServiceTest {
                 ResponseStatusException.class, () -> service.login(request));
 
         assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+        assertEquals("Invalid username or password", exception.getReason());
+    }
+
+    @Test
+    void mapsKeycloakClientConfigurationErrorsToBadGateway() {
+        AuthService service = new AuthService(
+                WebClient.builder().exchangeFunction(request -> Mono.just(
+                        ClientResponse.create(HttpStatus.BAD_REQUEST)
+                                .header("Content-Type", "application/json")
+                                .body("{\"error\":\"unauthorized_client\"}")
+                                .build())),
+                new ObjectMapper(), "http://keycloak", "banking", "banking-service-api", "client-secret");
+        AuthRequest request = new AuthRequest();
+        request.setUsername("customer");
+        request.setPassword("password");
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class, () -> service.login(request));
+
+        assertEquals(HttpStatus.BAD_GATEWAY, exception.getStatusCode());
+        assertEquals(
+                "Keycloak rejected the token request; check client configuration and direct access grants",
+                exception.getReason());
+    }
+
+    @Test
+    void rejectsMissingCredentialsBeforeCallingKeycloak() {
+        AuthService service = new AuthService(
+                WebClient.builder().exchangeFunction(request -> {
+                    throw new AssertionError("Keycloak must not be called without credentials");
+                }),
+                new ObjectMapper(), "http://keycloak", "banking", "banking-service-api", "");
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class, () -> service.login(new AuthRequest()));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+    }
+
+    @Test
+    void mapsKeycloakServerErrorsToBadGateway() {
+        AuthService service = new AuthService(
+                WebClient.builder().exchangeFunction(request -> Mono.just(
+                        ClientResponse.create(HttpStatus.SERVICE_UNAVAILABLE)
+                                .header("Content-Type", "application/json")
+                                .body("{\"error\":\"temporarily_unavailable\"}")
+                                .build())),
+                new ObjectMapper(), "http://keycloak", "banking", "banking-service-api", "");
+        AuthRequest request = new AuthRequest();
+        request.setUsername("customer");
+        request.setPassword("password");
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class, () -> service.login(request));
+
+        assertEquals(HttpStatus.BAD_GATEWAY, exception.getStatusCode());
+    }
+
+    @Test
+    void rejectsIncompleteTokenResponseAsBadGateway() {
+        AuthService service = new AuthService(
+                WebClient.builder().exchangeFunction(request -> Mono.just(
+                        ClientResponse.create(HttpStatus.OK)
+                                .header("Content-Type", "application/json")
+                                .body("{\"access_token\":\"access-value\"}")
+                                .build())),
+                new ObjectMapper(), "http://keycloak", "banking", "banking-service-api", "");
+        AuthRequest request = new AuthRequest();
+        request.setUsername("customer");
+        request.setPassword("password");
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class, () -> service.login(request));
+
+        assertEquals(HttpStatus.BAD_GATEWAY, exception.getStatusCode());
     }
 }
