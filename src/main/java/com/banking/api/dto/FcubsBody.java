@@ -61,6 +61,7 @@ public class FcubsBody {
     @JsonAlias({"RTProductIO", "RTPRODUCTIO"})
     private Map<String, Object> rtProductIO;
     private Map<String, Object> customerFull;
+    @JsonAlias("ACCSTATMASTERFULL")
     private AccountStatusMaster accStatMasterFull;
     private Map<String, Object> transactionDetails;
     private ImageSignature svvwsSifsigmasterIO;

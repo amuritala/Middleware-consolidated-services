@@ -71,4 +71,66 @@ class AccountStatusServiceTest {
         assertEquals("1010022140901014", json.get("accStatDetail").get(0).get("acc").asText());
         assertEquals("", json.get("accStatDetail").get(0).get("accdesc").asText());
     }
+
+    @Test
+    void mapsUppercaseAccountStatusChangeResponse() {
+        String rawResponse = """
+                {
+                  "FCUBSBODY": {
+                    "FCUBSERRORRESP": [],
+                    "FCUBSWARNINGRESP": [
+                      {
+                        "WARNING": [
+                          {"WCODE": "ST-SAVE-002", "WDESC": "Record Successfully Saved and Authorized"}
+                        ]
+                      }
+                    ],
+                    "accStatMasterFull": {
+                      "ACCCURR": "ALL",
+                      "ACCOUNTCLASS": "ALL",
+                      "ACTION": "P",
+                      "AUTHSTAT": "A",
+                      "CHECKER": "TAKEON02",
+                      "CHECKERSTAMP": "2026-10-14 09:22:07",
+                      "CUSTID": "000074",
+                      "CUSTOMERNAME": "MARIAMA S. CONTEH",
+                      "MAKER": "TAKEON02",
+                      "MAKERSTAMP": "2026-10-14 09:22:07",
+                      "MODNO": 1,
+                      "REFNO": "101BSTC262870002",
+                      "RESTRTYPE": "DO",
+                      "TXNSTAT": "O",
+                      "accStatDetail": [
+                        {
+                          "ACC": "1010000740801013",
+                          "ACCBRN": "101",
+                          "ACCCURR": "SLE",
+                          "ACCDESC": "MARIAMA S. CONTEH",
+                          "ACCOUNTCLASS": "STSVEI"
+                        }
+                      ]
+                    }
+                  },
+                  "FCUBSHEADER": {"MSGSTAT": "SUCCESS", "OPERATION": "CreateStatChange"}
+                }
+                """;
+        WebClient webClient = WebClient.builder()
+                .baseUrl("http://bst-service")
+                .exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
+                        .header("Content-Type", "application/json")
+                        .body(rawResponse)
+                        .build()))
+                .build();
+
+        StatusChangeResponse response = new AccountStatusService(webClient)
+                .changeAccountStatus(new StatChangeRequest());
+
+        assertEquals("SUCCESS", response.getFcubsheader().getMsgstat());
+        assertEquals("000074", response.getFcubsbody().getAccStatMasterFull().getCustid());
+        assertEquals("101BSTC262870002", response.getFcubsbody().getAccStatMasterFull().getRefno());
+        assertEquals("1010000740801013", response.getFcubsbody().getAccStatMasterFull()
+                .getAccStatDetail().get(0).get("ACC").asText());
+        assertEquals("ST-SAVE-002", response.getFcubsbody().getFcubswarningresp().get(0)
+                .getWarning().get(0).getWcode());
+    }
 }
