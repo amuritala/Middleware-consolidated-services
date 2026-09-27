@@ -30,6 +30,10 @@ public class FcubsBody {
     private Map<String, Object> sttmsCustomerFull;
     @JsonAlias({"sttmsCustomerIO", "STTMSCUSTOMERIO"})
     private Map<String, Object> sttmsCustomerIO;
+    @JsonAlias({"stvwAccountSumaryFull", "STVWACCOUNTSUMARYFULL"})
+    private Map<String, Object> stvwAccountSumaryFull;
+    @JsonAlias({"stvwAccountSumaryIO", "STVWACCOUNTSUMARYIO"})
+    private Map<String, Object> stvwAccountSumaryIO;
     @JsonAlias({"mainFull", "MAINFULL"})
     private Map<String, Object> mainFull;
     @JsonAlias({"mainIO", "MAINIO"})

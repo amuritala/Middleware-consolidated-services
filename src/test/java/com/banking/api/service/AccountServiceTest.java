@@ -277,4 +277,44 @@ class AccountServiceTest {
         assertEquals("ST-VALS-002", response.getFcubsbody().getFcubserrorresp().get(0)
                 .getError().get(1).getEcode());
     }
+
+    @Test
+    void mapsSummaryBalanceFailureResponse() {
+        String responseJson = """
+                {
+                  "FCUBSBODY": {
+                    "FCUBSERRORRESP": [
+                      {
+                        "ERROR": [
+                          {
+                            "ECODE": "ST-GRP03",
+                            "EDESC": "User is restricted to query the details of this customer 1010089970301010"
+                          },
+                          {"ECODE": "ST-SAVE-024", "EDESC": "Failed to Query Data"}
+                        ]
+                      }
+                    ],
+                    "FCUBSWARNINGRESP": [],
+                    "stvwAccountSumaryFull": null,
+                    "stvwAccountSumaryIO": {"CUSTNO": "1010089970301010"}
+                  },
+                  "FCUBSHEADER": {"MSGSTAT": "FAILURE", "OPERATION": "QueryAccSumm"}
+                }
+                """;
+        WebClient webClient = WebClient.builder()
+                .baseUrl("http://account-service")
+                .exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
+                        .header("Content-Type", "application/json")
+                        .body(responseJson)
+                        .build()))
+                .build();
+
+        var response = new AccountService(webClient, new ObjectMapper().findAndRegisterModules())
+                .summaryBalance(new AccountNumberRequest("1010089970301010", "101"));
+
+        assertEquals("FAILURE", response.getFcubsheader().getMsgstat());
+        assertEquals("1010089970301010", response.getFcubsbody().getStvwAccountSumaryIO().get("CUSTNO"));
+        assertEquals("ST-GRP03", response.getFcubsbody().getFcubserrorresp().get(0)
+                .getError().get(0).getEcode());
+    }
 }
