@@ -21,21 +21,27 @@ public class AuthService {
     private final WebClient webClient;
     private final String realm;
     private final String clientId;
+    private final String clientSecret;
 
     public AuthService(
             WebClient.Builder webClientBuilder,
             @Value("${keycloak.auth-server-url}") String authServerUrl,
             @Value("${keycloak.realm}") String realm,
-            @Value("${keycloak.resource}") String clientId) {
+            @Value("${keycloak.resource}") String clientId,
+            @Value("${keycloak.credentials.secret:}") String clientSecret) {
         this.webClient = webClientBuilder.baseUrl(authServerUrl).build();
         this.realm = realm;
         this.clientId = clientId;
+        this.clientSecret = clientSecret;
     }
 
     public AuthResponse login(AuthRequest request) {
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("grant_type", "password");
         form.add("client_id", clientId);
+        if (!clientSecret.isBlank()) {
+            form.add("client_secret", clientSecret);
+        }
         form.add("username", request.getUsername());
         form.add("password", request.getPassword());
 

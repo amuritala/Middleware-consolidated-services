@@ -35,7 +35,7 @@ class AuthServiceTest {
                             .build());
                 });
         AuthService service = new AuthService(
-                webClientBuilder, "http://keycloak", "banking", "banking-service-api");
+                webClientBuilder, "http://keycloak", "banking", "banking-service-api", "client-secret");
         AuthRequest request = new AuthRequest();
         request.setUsername("customer");
         request.setPassword("password");
@@ -54,7 +54,7 @@ class AuthServiceTest {
                                 .header("Content-Type", "application/json")
                                 .body("{\"error\":\"invalid_grant\"}")
                                 .build())),
-                "http://keycloak", "banking", "banking-service-api");
+                "http://keycloak", "banking", "banking-service-api", "client-secret");
         AuthRequest request = new AuthRequest();
         request.setUsername("customer");
         request.setPassword("incorrect");

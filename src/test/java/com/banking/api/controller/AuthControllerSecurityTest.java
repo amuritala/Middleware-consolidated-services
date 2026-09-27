@@ -35,6 +35,7 @@ class AuthControllerSecurityTest {
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "Bearer stale-or-invalid-token")
                         .content("""
                                 {"username":"customer","password":"secret"}
                                 """))
