@@ -43,6 +43,8 @@ public class FcubsBody {
     @JsonProperty("amountBlocksIO")
     @JsonAlias("AMOUNTBLOCKSIO")
     private Map<String, Object> amountBlocksIO;
+    @JsonAlias({"ACCBalance", "ACCBALANCE"})
+    private Map<String, Object> accBalance;
     private AccountBalanceResult accbalance;
     private CustomerStatQuery cumulativeIO;
     private CustomerStatFull cumulativeFull;

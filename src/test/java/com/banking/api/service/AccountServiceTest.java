@@ -317,4 +317,55 @@ class AccountServiceTest {
         assertEquals("ST-GRP03", response.getFcubsbody().getFcubserrorresp().get(0)
                 .getError().get(0).getEcode());
     }
+
+    @Test
+    void mapsUppercaseCheckBalanceResponse() {
+        String responseJson = """
+                {
+                  "FCUBSBODY": {
+                    "ACCBalance": {
+                      "ACCBAL": [
+                        {
+                          "BRANCHCODE": "101",
+                          "CUSTACNO": "1010089970301010",
+                          "AVLBAL": null,
+                          "INTLIQD": []
+                        }
+                      ]
+                    },
+                    "FCUBSERRORRESP": [
+                      {
+                        "ERROR": [
+                          {
+                            "ECODE": "GW-ROUT0003",
+                            "EDESC": "No data found for the service, operation and source combination"
+                          }
+                        ]
+                      }
+                    ],
+                    "FCUBSWARNINGRESP": []
+                  },
+                  "FCUBSHEADER": {"MSGSTAT": "FAILURE", "OPERATION": "QueryAccBal"}
+                }
+                """;
+        WebClient webClient = WebClient.builder()
+                .baseUrl("http://account-service")
+                .exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
+                        .header("Content-Type", "application/json")
+                        .body(responseJson)
+                        .build()))
+                .build();
+
+        var response = new AccountService(webClient, new ObjectMapper().findAndRegisterModules())
+                .checkBalance(new AccountBalanceRequest("101", "1010089970301010"));
+
+        assertEquals("FAILURE", response.getFcubsheader().getMsgstat());
+        List<?> accountBalances = (List<?>) response.getFcubsbody().getAccBalance().get("ACCBAL");
+        assertNotNull(accountBalances);
+        assertEquals(1, accountBalances.size());
+        assertEquals("1010089970301010",
+                ((Map<?, ?>) accountBalances.get(0)).get("CUSTACNO"));
+        assertEquals("GW-ROUT0003", response.getFcubsbody().getFcubserrorresp().get(0)
+                .getError().get(0).getEcode());
+    }
 }
