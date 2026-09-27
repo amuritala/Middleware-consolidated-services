@@ -109,4 +109,51 @@ class AccountStatsServiceTest {
         List<?> transactions = (List<?>) response.getFcubsbody().getAccDetailsFull().get("accTransaction");
         assertEquals("101kjjm262870001", ((java.util.Map<?, ?>) transactions.get(0)).get("REFNO"));
     }
+
+    @Test
+    void mapsUppercaseAuditTrailFailureResponse() {
+        String rawResponse = """
+                {
+                  "FCUBSBODY": {
+                    "FCUBSERRORRESP": [
+                      {
+                        "ERROR": [
+                          {"ECODE": "ST-SAVE-024", "EDESC": "Failed to Query Data"},
+                          {"ECODE": "ST-TD-004", "EDESC": "Queried Account No is not a TD account"}
+                        ]
+                      }
+                    ],
+                    "FCUBSWARNINGRESP": [],
+                    "acvwAcdaudtrFull": null,
+                    "acvwAcdaudtrIO": {
+                      "ACTION": null,
+                      "BRANCHCODE": "101",
+                      "CUSTACNO": "1010089970301010",
+                      "TRNFROMDT": "2026-09-30T23:00:00.000Z",
+                      "TRNTODT": "2026-10-13T23:00:00.000Z"
+                    }
+                  },
+                  "FCUBSHEADER": {
+                    "MSGSTAT": "FAILURE",
+                    "OPERATION": "QueryAudittrail"
+                  }
+                }
+                """;
+        WebClient webClient = WebClient.builder()
+                .baseUrl("http://account-stats")
+                .exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
+                        .header("Content-Type", "application/json")
+                        .body(rawResponse)
+                        .build()))
+                .build();
+
+        AccountStatsResponse response = new AccountStatsService(webClient)
+                .queryAuditTrail(new AuditTrailRequest("101", "1010089970301010",
+                        "2026-09-30", "2026-10-13", "VIEW", "CHQ1"));
+
+        assertEquals("FAILURE", response.getFcubsheader().getMsgstat());
+        assertEquals("1010089970301010", response.getFcubsbody().getAcvwAcdaudtrIO().get("CUSTACNO"));
+        assertEquals("ST-TD-004", response.getFcubsbody().getFcubserrorresp().get(0)
+                .getError().get(1).getEcode());
+    }
 }
