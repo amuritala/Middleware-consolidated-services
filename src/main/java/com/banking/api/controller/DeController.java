@@ -33,7 +33,7 @@ public class DeController {
     }
 
     @PreAuthorize("hasAuthority('ROLE_CREATE_DE_TEMPLATE')")
-    @PostMapping("/de-reserval")
+    @PostMapping("/de-reversal")
     public ResponseEntity<DeResponse> multiTemplate(@RequestBody ReversalRequest request) {
         return ResponseEntity.ok(deService.reverseJournal(request));
     }
