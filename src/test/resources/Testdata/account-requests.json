@@ -1,0 +1,66 @@
+[
+  {
+    "endpoint": "/summary-balance",
+    "request": {
+      "custacno": "1030046420801014",
+      "branchCode": "103"
+    }
+  },
+  {
+    "endpoint": "/statement",
+    "request": {
+      "cusno": "001633",
+      "stmtid": "001633"
+    }
+  },
+  {
+    "endpoint": "/account-details",
+    "request": {
+      "branchcode": "101",
+      "custacno": "1010016330301010"
+    }
+  },
+  {
+    "endpoint": "/create-account",
+    "request": {
+      "brn": "101",
+      "acc": "1010548720000000",
+      "custno": "054872",
+      "ccy": "SLE",
+      "accls": "CAIND"
+    }
+  },
+  {
+    "endpoint": "/summary-balance",
+    "request": {
+      "branchCode": "103",
+      "custacno": "1030046420801014"
+    }
+  },
+  {
+    "endpoint": "/full-account-balance",
+    "request": {
+      "branchCode": "101",
+      "custacno": "1010016330301010"
+    }
+  },
+  {
+    "endpoint": "/cheque-book-request",
+    "request": {
+      "accountbranch": "104",
+      "account": "1040258210101010",
+      "firstchequenumber": "00000102",
+      "chequeleaves": 20,
+      "orderdetails": "request for cheek book",
+      "deliveryadd1": "Adekunle Street BO",
+      "applychg": "N",
+      "cavwsChequeStatus": [
+        {
+          "chqbookno": "00000102",
+          "chqno": "00000126",
+          "status": "U"
+        }
+      ]
+    }
+  }
+]
