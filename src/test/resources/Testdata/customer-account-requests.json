@@ -1,0 +1,98 @@
+{
+  "/customer-account-details": {
+    "custno": "001633"
+  },
+  "/query-amount-block": {
+    "amtblkno": "1234"
+  },
+  "/query-customer": {
+    "custno": "001633"
+  },
+  "/create-customer": {
+    "addrln1": "No 40 Fatai Aromire Street",
+    "country": "SL",
+    "ccateg": "INDV",
+    "fullname": "Abosede Olayinwola Adesegon",
+    "media": "MAIL",
+    "loc": "FTN",
+    "sname": "Adesegun",
+    "nlty": "SL",
+    "uidname": "PASSPORT",
+    "uidval": "094473323",
+    "createacc": "N",
+    "custpersonal": {
+      "fstname": "Olayinwola",
+      "midname": "Adesegon",
+      "lstname": "Abosede",
+      "dob": "1983-10-05",
+      "gendr": "M",
+      "nationid": "362372682",
+      "telephno": "053272722",
+      "lang": "ENG",
+      "pptno": "1R7R53633",
+      "pptissdt": "2026-09-19",
+      "pptexpdt": "2030-09-19"
+    }
+  },
+  "/create-corporate-customer": {
+    "ctype": "COR_ENT",
+    "name": "TM40 Nigeria Ltd",
+    "addrln1": "5 Pelewura Apapa Street",
+    "addrln3": "Lagos",
+    "addrln2": "Apapa",
+    "addrln4": "papa Local ",
+    "country": "SL",
+    "sname": "TM40 Nigeria Ltd",
+    "nlty": "SL",
+    "ccateg": "COR_ENT",
+    "fullname": "TM40 Nigeria Ltd",
+    "media": "MAIL",
+    "loc": "FTN",
+    "gendr": "M",
+    "custcorp": {
+      "corpname": "TM40 Nigeria Ltd",
+      "regadd1": "5 Pelewura Apapa Street",
+      "regadd2": "",
+      "regadd3": "",
+      "corpdesc": "SOFTWARE ",
+      "regcntry": "SL",
+      "caddr1": "",
+      "caddr3": "",
+      "caddr2": "",
+      "caddr4": "",
+      "cntry": "SL",
+      "language": "ENG",
+      "cname": "5 Pelewura Apapa Street",
+      "telephone": "80896996",
+      "emailid": "bayee4k@yahoo.com"
+    }
+  },
+  "/amount-block": {
+    "rem": "block an amount",
+    "acc": "1010016330301010",
+    "ablktype": "F",
+    "amt": 15,
+    "referenceno": "3444556",
+    "expdate": "2026-10-20",
+    "effdate": "2026-10-14",
+    "amtblkno": "A123456",
+    "holddesc": "wrong credit postin",
+    "branch": "101"
+  },
+  "/cheque-book-request": {
+    "accountbranch": "101",
+    "account": "1010548717712018",
+    "firstchequenumber": "00000001",
+    "chequeleaves": 20,
+    "orderdetails": "request for cheek book",
+    "deliveryadd1": "Adekunle Street BO",
+    "applychg": "N",
+    "cavwsChequeStatus": [
+      {
+        "chqbookno": "00000001",
+        "chqno": "00000001",
+        "status": "U"
+      }
+    ]
+  }
+}
