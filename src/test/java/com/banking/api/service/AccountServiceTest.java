@@ -128,7 +128,7 @@ class AccountServiceTest {
         assertEquals(List.of(
                 "/api/v1/Summarybal",
                 "/api/v1/fullAccbal",
-                "/api/v1/checkout",
+                "/api/v1/checkbook",
                 "/api/v1/AccDetails",
                 "/api/v1/Statement",
                 "/api/v1/bal",
@@ -407,6 +407,68 @@ class AccountServiceTest {
         assertEquals("1010089970301010",
                 ((Map<?, ?>) accountBalances.get(0)).get("CUSTACNO"));
         assertEquals("GW-ROUT0003", response.getFcubsbody().getFcubserrorresp().get(0)
+                .getError().get(0).getEcode());
+    }
+
+    @Test
+    void mapsChequeBookResponseWithChequeBookDetails() {
+        String responseJson = """
+                {
+                  "FCUBSBODY": {
+                    "FCUBSERRORRESP": [
+                      {
+                        "ERROR": [
+                          {"ECODE": "CA-00001", "EDESC": "Invalid Account"},
+                          {"ECODE": "ST-SAVE-004", "EDESC": "Failed to Save the Record"},
+                          {"ECODE": "ST-VALS-011", "EDESC": "Invalid Value 1010548720000000 for Field Account"}
+                        ]
+                      }
+                    ],
+                    "FCUBSWARNINGRESP": [],
+                    "chqBkDetailsFull": {
+                      "ACCOUNT": "1010548720000000",
+                      "ACCOUNTBRANCH": "101",
+                      "APPLYCHG": "N",
+                      "CHEQUELEAVES": 20,
+                      "DELIVERYADD1": null,
+                      "FIRSTCHEQUENUMBER": "00000001",
+                      "ORDERDETAILS": "request for cheek book",
+                      "cavwsChequeStatus": [
+                        {
+                          "CHQBOOKNO": "00000001",
+                          "CHQNO": "00000001",
+                          "STATUS": "U"
+                        }
+                      ]
+                    }
+                  },
+                  "FCUBSHEADER": {
+                    "ACTION": "NEW",
+                    "FUNCTIONID": "CADCHBOO",
+                    "MSGSTAT": "FAILURE",
+                    "OPERATION": "CreateCheckBook"
+                  }
+                }
+                """;
+        WebClient webClient = WebClient.builder()
+                .baseUrl("http://account-service")
+                .exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
+                        .header("Content-Type", "application/json")
+                        .body(responseJson)
+                        .build()))
+                .build();
+
+        AccountResponse response = new AccountService(
+                webClient,
+                new ObjectMapper().findAndRegisterModules()
+        ).requestChequeBook(chequeBookRequest());
+
+        assertEquals("FAILURE", response.getFcubsheader().getMsgstat());
+        assertEquals("1010548720000000",
+                response.getFcubsbody().getChqBkDetailsFull().get("ACCOUNT"));
+        assertEquals(20, ((Number) response.getFcubsbody().getChqBkDetailsFull()
+                .get("CHEQUELEAVES")).intValue());
+        assertEquals("CA-00001", response.getFcubsbody().getFcubserrorresp().get(0)
                 .getError().get(0).getEcode());
     }
 }

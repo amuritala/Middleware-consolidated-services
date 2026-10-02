@@ -40,6 +40,8 @@ public class FcubsBody {
     private Map<String, Object> mainIO;
     @JsonAlias({"amountBlocksFull", "AMOUNTBLOCKSFULL"})
     private Map<String, Object> amountBlocksFull;
+    @JsonAlias({"chqBkDetailsFull", "CHQBKDETAILSFULL"})
+    private Map<String, Object> chqBkDetailsFull;
     @JsonProperty("amountBlocksIO")
     @JsonAlias("AMOUNTBLOCKSIO")
     private Map<String, Object> amountBlocksIO;
