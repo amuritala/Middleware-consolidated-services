@@ -153,6 +153,39 @@ class CustomerServiceTest {
     }
 
     @Test
+    void mapsQueryCustomerIoResponse() {
+        String rawResponse = """
+                {
+                  "fcubsbody": {
+                    "fcubserrorresp": [],
+                    "fcubswarningresp": [],
+                    "customerFull": null,
+                    "customerIO": {
+                      "custno": "009520"
+                    }
+                  },
+                  "fcubsheader": {
+                    "msgstat": "SUCCESS",
+                    "operation": "QueryCustomer"
+                  }
+                }
+                """;
+        WebClient webClient = WebClient.builder()
+                .baseUrl("http://customer-service")
+                .exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
+                        .header("Content-Type", "application/json")
+                        .body(rawResponse)
+                        .build()))
+                .build();
+
+        CustomerResponse response = new CustomerService(webClient)
+                .queryCustomer(new CustomerNumberRequest());
+
+        assertEquals("SUCCESS", response.getFcubsheader().getMsgstat());
+        assertEquals("009520", response.getFcubsbody().getCustomerIO().get("custno"));
+    }
+
+    @Test
     void mapsCustomerAccountDetailsResponse() {
         String rawResponse = """
                 {
