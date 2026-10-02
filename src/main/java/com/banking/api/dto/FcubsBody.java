@@ -62,6 +62,8 @@ public class FcubsBody {
     private Map<String, Object> acvwAcdaudtrIO;
     @JsonAlias({"transactionDetailsFull", "TRANSACTIONDETAILSFULL"})
     private Map<String, Object> transactionDetailsFull;
+    @JsonAlias({"acvwsAllAcEntriesFull", "ACVWSALLACENTRIESFULL"})
+    private Map<String, Object> acvwsAllAcEntriesFull;
     @JsonAlias({"RTProductFull", "RTPRODUCTFULL"})
     private Map<String, Object> rtProductFull;
     @JsonAlias({"RTProductIO", "RTPRODUCTIO"})

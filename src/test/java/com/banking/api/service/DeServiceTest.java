@@ -259,4 +259,71 @@ class DeServiceTest {
         assertEquals("150320368", full.getDetbsJrnlTxnDetail().get(0).getAccount());
         assertEquals("1", full.getMisdetails().get("CALCMETH1").asText());
     }
+
+    @Test
+    void mapsDeReservationResponseWithAllAccountEntries() {
+        String rawResponse = """
+                {
+                  "FCUBSBODY": {
+                    "FCUBSERRORRESP": [],
+                    "FCUBSWARNINGRESP": [],
+                    "acvwsAllAcEntriesFull": {
+                      "AMOUNTTAGG": "TXN_AMT",
+                      "EVENTSRNOO": "39186268",
+                      "TRNREFNO": "101qlql262870001",
+                      "acvwsAllAcEntriesA": [
+                        {
+                          "ACENTRYSRNO": null,
+                          "AMOUNTTAG": "TXN_AMT",
+                          "DRCRINDD": "C",
+                          "EVENTT": "INIT",
+                          "EXCHRATE": 1,
+                          "FCYAMOUNTT": null,
+                          "LCYAMOUNTT": 120,
+                          "MODULE": "DE",
+                          "RELATEDACCOUNT": "1070539550801012",
+                          "RELATEDREFERENCE": "",
+                          "TRNCODE": "201",
+                          "TRNREFNO": "101qlql262870001"
+                        },
+                        {
+                          "AMOUNTTAG": "TXN_AMT",
+                          "DRCRINDD": "D",
+                          "LCYAMOUNTT": 120,
+                          "MODULE": "DE",
+                          "RELATEDACCOUNT": "1010016330301010",
+                          "TRNCODE": "201",
+                          "TRNREFNO": "101qlql262870001"
+                        }
+                      ]
+                    }
+                  },
+                  "FCUBSHEADER": {
+                    "ACTION": "REVERSE",
+                    "FUNCTIONID": "DEDONLRV",
+                    "MSGSTAT": "FAILURE",
+                    "OPERATION": "ReverseCommonReversal"
+                  }
+                }
+                """;
+        WebClient webClient = WebClient.builder()
+                .baseUrl("http://de-service")
+                .exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
+                        .header("Content-Type", "application/json")
+                        .body(rawResponse)
+                        .build()))
+                .build();
+
+        DeResponse response = new DeService(webClient).reverseJournal(new ReversalRequest());
+
+        assertEquals("FAILURE", response.getFcubsheader().getMsgstat());
+        assertEquals("101qlql262870001",
+                response.getFcubsbody().getAcvwsAllAcEntriesFull().get("TRNREFNO"));
+        List<?> entries = (List<?>) response.getFcubsbody().getAcvwsAllAcEntriesFull()
+                .get("acvwsAllAcEntriesA");
+        assertEquals(2, entries.size());
+        assertEquals("C", ((java.util.Map<?, ?>) entries.get(0)).get("DRCRINDD"));
+        assertEquals(120, ((Number) ((java.util.Map<?, ?>) entries.get(1))
+                .get("LCYAMOUNTT")).intValue());
+    }
 }
