@@ -7,6 +7,7 @@ import com.banking.api.dto.StatementResponse;
 import com.banking.api.dto.AccountDetailsRequest;
 import com.banking.api.dto.AccountNumberRequest;
 import com.banking.api.dto.AccountCreationRequest;
+import com.banking.api.dto.ChequeBookRequest;
 import com.banking.api.dto.StatementRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -113,7 +114,7 @@ class AccountServiceTest {
         assertNotNull(summaryBalance.getFcubsbody());
         assertEquals("SUCCESS", summaryBalance.getFcubsheader().getMsgstat());
         assertNotNull(accountService.fullAccountBalance(accountNumberRequest).getFcubsbody());
-        assertNotNull(accountService.checkout(accountNumberRequest).getFcubsbody());
+        assertNotNull(accountService.requestChequeBook(chequeBookRequest()).getFcubsbody());
         assertNotNull(accountService.accountDetails(
                 new AccountDetailsRequest("001", "123456")).getFcubsbody());
         assertNotNull(accountService.statement(
@@ -132,6 +133,46 @@ class AccountServiceTest {
                 "/api/v1/Statement",
                 "/api/v1/bal",
                 "/api/v1/createAcc"), paths);
+    }
+
+    @Test
+    void serializesChequeBookRequestUsingFcubsFieldNames() throws Exception {
+        String json = new ObjectMapper().writeValueAsString(chequeBookRequest());
+
+        assertEquals(
+                new ObjectMapper().readTree("""
+                        {
+                          "accountbranch": "101",
+                          "account": "1010548717712018",
+                          "firstchequenumber": "00000001",
+                          "chequeleaves": 20,
+                          "orderdetails": "request for cheek book",
+                          "deliveryadd1": "Adekunle Street BO",
+                          "applychg": "N",
+                          "cavwsChequeStatus": [
+                            {
+                              "chqbookno": "00000001",
+                              "chqno": "00000001",
+                              "status": "U"
+                            }
+                          ]
+                        }
+                        """),
+                new ObjectMapper().readTree(json)
+        );
+    }
+
+    private ChequeBookRequest chequeBookRequest() {
+        return new ChequeBookRequest(
+                "101",
+                "1010548717712018",
+                "00000001",
+                20,
+                "request for cheek book",
+                "Adekunle Street BO",
+                "N",
+                List.of(new ChequeBookRequest.ChequeStatus("00000001", "00000001", "U"))
+        );
     }
 
     @Test

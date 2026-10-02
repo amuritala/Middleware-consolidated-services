@@ -5,6 +5,7 @@ import com.banking.api.dto.AccountCreationRequest;
 import com.banking.api.dto.AccountDetailsRequest;
 import com.banking.api.dto.AccountNumberRequest;
 import com.banking.api.dto.AccountResponse;
+import com.banking.api.dto.ChequeBookRequest;
 import com.banking.api.dto.CreateAccountResponse;
 import com.banking.api.dto.FullAccountBalanceResponse;
 import com.banking.api.dto.StatementRequest;
@@ -71,9 +72,9 @@ public class AccountService {
         return post("api/v1/fullAccbal", request, FullAccountBalanceResponse.class, "getting full account balance");
     }
 
-    public AccountResponse checkout(AccountNumberRequest request) {
-        log.info("Checking out account for custacno {}", request.getCustacno());
-        return post("api/v1/checkout", request, AccountResponse.class, "checking out account");
+    public AccountResponse requestChequeBook(ChequeBookRequest request) {
+        log.info("Requesting cheque book for account {}", request.getAccount());
+        return post("api/v1/checkout", request, AccountResponse.class, "requesting cheque book");
     }
 
     public AccountResponse accountDetails(AccountDetailsRequest request) {

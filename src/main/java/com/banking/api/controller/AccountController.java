@@ -5,6 +5,7 @@ import com.banking.api.dto.AccountCreationRequest;
 import com.banking.api.dto.AccountDetailsRequest;
 import com.banking.api.dto.AccountNumberRequest;
 import com.banking.api.dto.AccountResponse;
+import com.banking.api.dto.ChequeBookRequest;
 import com.banking.api.dto.CreateAccountResponse;
 import com.banking.api.dto.FullAccountBalanceResponse;
 import com.banking.api.dto.StatementRequest;
@@ -54,9 +55,9 @@ public class AccountController {
     }
 
     @PreAuthorize("hasAuthority('ROLE_CHECKOUT_ACCOUNT')")
-    @PostMapping("/checkout")
-    public ResponseEntity<AccountResponse> checkout(@RequestBody AccountNumberRequest request) {
-        return ResponseEntity.ok(accountService.checkout(request));
+    @PostMapping("/cheque-book-request")
+    public ResponseEntity<AccountResponse> requestChequeBook(@RequestBody ChequeBookRequest request) {
+        return ResponseEntity.ok(accountService.requestChequeBook(request));
     }
 
     @PreAuthorize("hasAuthority('ROLE_VIEW_ACCOUNT_DETAILS')")
