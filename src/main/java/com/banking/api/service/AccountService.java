@@ -74,7 +74,7 @@ public class AccountService {
 
     public AccountResponse requestChequeBook(ChequeBookRequest request) {
         log.info("Requesting cheque book for account {}", request.getAccount());
-        return post("api/v1/checkout", request, AccountResponse.class, "requesting cheque book");
+        return post("api/v1/checkbook", request, AccountResponse.class, "requesting cheque book");
     }
 
     public AccountResponse accountDetails(AccountDetailsRequest request) {
