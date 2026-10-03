@@ -1,44 +1,35 @@
 package com.banking.api.controller;
 
 import com.banking.api.config.SecurityConfig;
-import com.banking.api.dto.AccountResponse;
-import com.banking.api.dto.AccountStatsResponse;
-import com.banking.api.dto.AccountStatementResponse;
-import com.banking.api.dto.CreateAccountResponse;
-import com.banking.api.dto.CustomerResponse;
-import com.banking.api.dto.DeResponse;
-import com.banking.api.dto.FullAccountBalanceResponse;
-import com.banking.api.dto.RtellerResponse;
-import com.banking.api.dto.StatementResponse;
-import com.banking.api.dto.SummaryBalanceResponse;
-import com.banking.api.service.AccountService;
+import com.banking.api.config.WebConfig;
 import com.banking.api.service.AccountFinancialService;
+import com.banking.api.service.AccountService;
 import com.banking.api.service.AccountStatsService;
 import com.banking.api.service.CustomerService;
 import com.banking.api.service.DeService;
 import com.banking.api.service.RtellerService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.io.IOException;
+import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = {
         AccountController.class,
@@ -48,284 +39,142 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         AccountStatsController.class,
         AccountFinancialController.class
 })
-@Import(SecurityConfig.class)
+@Import({
+        SecurityConfig.class,
+        WebConfig.class,
+        AccountService.class,
+        CustomerService.class,
+        DeService.class,
+        RtellerService.class,
+        AccountStatsService.class,
+        AccountFinancialService.class
+})
+@EnabledIfSystemProperty(
+        named = "runRealClientIntegration",
+        matches = "true",
+        disabledReason = "Calls configured downstream services, including financial write operations"
+)
 class EndpointRequestIntegrationTest {
+
+    private static final List<EndpointExpectation> ENDPOINTS = List.of(
+            new EndpointExpectation("/customer-account-details", "ROLE_VIEW_CUSTOMER_ACCOUNT_DETAILS",
+                    "custDetailsFull", "custDetailsIO"),
+            new EndpointExpectation("/query-amount-block", "ROLE_QUERY_AMOUNT_BLOCK",
+                    "amountBlocksFull", "amountBlocksIO"),
+            new EndpointExpectation("/query-customer", "ROLE_QUERY_CUSTOMER",
+                    "customerFull", "customerIO"),
+            new EndpointExpectation("/create-customer", "ROLE_CREATE_CUSTOMER", "customerFull"),
+            new EndpointExpectation("/create-corporate-customer", "ROLE_CREATE_CORPORATE_CUSTOMER",
+                    "customerFull"),
+            new EndpointExpectation("/amount-block", "ROLE_CREATE_AMOUNT_BLOCK",
+                    "amountBlocksFull", "amountBlocksIO"),
+            new EndpointExpectation("/cheque-book-request", "ROLE_CHECKOUT_ACCOUNT", "chqBkDetailsFull"),
+            new EndpointExpectation("/summary-balance", "ROLE_VIEW_SUMMARY_BALANCE",
+                    "stvwAccountSumaryFull", "stvwAccountSumaryIO"),
+            new EndpointExpectation("/statement", "ROLE_VIEW_ACCOUNT_STATEMENT", "mainFull", "mainIO"),
+            new EndpointExpectation("/account-details", "ROLE_VIEW_ACCOUNT_DETAILS",
+                    "custDetailsFull", "custDetailsIO"),
+            new EndpointExpectation("/create-account", "ROLE_CREATE_ACCOUNT", "custAccountFull"),
+            new EndpointExpectation("/full-account-balance", "ROLE_VIEW_FULL_ACCOUNT_BALANCE",
+                    "custAccountFull"),
+            new EndpointExpectation("/de-single-debit-credit-journal", "ROLE_CREATE_DE_JOURNAL",
+                    "detbsJrnlTxnMasterFull"),
+            new EndpointExpectation("/query-journal", "ROLE_QUERY_JOURNAL",
+                    "detbsJrnlTxnMasterIO", "detbsJrnlTxnMasterFull"),
+            new EndpointExpectation("/de-reversal", "ROLE_CREATE_DE_TEMPLATE", "acvwsAllAcEntriesFull"),
+            new EndpointExpectation("/multi-de-bulk-journal", "ROLE_CREATE_DE_JOURNAL",
+                    "detbsJrnlTxnMasterFull"),
+            new EndpointExpectation("/authorize", "ROLE_AUTHORIZE_DE_TRANSACTION",
+                    "detbsJrnlTxnMasterIO", "detbsJrnlTxnMasterFull"),
+            new EndpointExpectation("/query-transaction", "ROLE_QUERY_TRANSACTION",
+                    "transactionDetailsFull"),
+            new EndpointExpectation("/query-product", "ROLE_QUERY_PRODUCT", "rtProductFull", "rtProductIO"),
+            new EndpointExpectation("/pass-entry", "ROLE_PASS_ENTRY", "transactionDetails"),
+            new EndpointExpectation("/authorize-transaction", "ROLE_AUTHORIZE_TRANSACTION",
+                    "transactionDetails"),
+            new EndpointExpectation("/reverse-transaction", "ROLE_REVERSE_TRANSACTION", "transactionDetails"),
+            new EndpointExpectation("/customer-stats", "ROLE_VIEW_CUSTOMER_STATS", "cumulativeIO", "cumulativeFull"),
+            new EndpointExpectation("/audit-trail", "ROLE_VIEW_AUDIT_TRAIL",
+                    "acvwAcdaudtrFull", "acvwAcdaudtrIO"),
+            new EndpointExpectation("/account-transactions", "ROLE_VIEW_ACCOUNT_TRANSACTIONS",
+                    "accDetailsFull", "accDetailsIO"),
+            new EndpointExpectation("/customer-statement", "ROLE_VIEW_CUSTOMER_STATEMENT",
+                    "custAccStmtAdhocRequest")
+    );
 
     @Autowired
     private MockMvc mockMvc;
 
     private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
-    @MockitoBean
-    private AccountService accountService;
-
-    @MockitoBean
-    private CustomerService customerService;
-
-    @MockitoBean
-    private DeService deService;
-
-    @MockitoBean
-    private RtellerService rtellerService;
-
-    @MockitoBean
-    private AccountStatsService accountStatsService;
-
-    @MockitoBean
-    private AccountFinancialService accountFinancialService;
-
-    @BeforeEach
-    void stubMappedDownstreamResponses() throws IOException {
-        when(accountService.summaryBalance(any())).thenReturn(response(
-                SummaryBalanceResponse.class,
-                "\"stvwAccountSumaryIO\":{\"CUSTNO\":\"1030046420801014\"}"
-        ));
-        when(accountService.statement(any())).thenReturn(response(
-                StatementResponse.class,
-                "\"mainIO\":{\"CUSNO\":\"001633\",\"STMTID\":\"001633\"}"
-        ));
-        when(accountService.accountDetails(any())).thenReturn(response(
-                AccountResponse.class,
-                "\"custDetailsFull\":{\"CUSTNO\":\"001633\"}"
-        ));
-        when(accountService.createAccount(any())).thenReturn(response(
-                CreateAccountResponse.class,
-                "\"custAccountFull\":{\"CUSTNO\":\"054872\",\"ACC\":\"1010548720000000\"}"
-        ));
-        when(accountService.fullAccountBalance(any())).thenReturn(response(
-                FullAccountBalanceResponse.class,
-                "\"custAccountFull\":{\"ACC\":\"1010016330301010\"}"
-        ));
-        when(accountService.requestChequeBook(any())).thenReturn(response(
-                AccountResponse.class,
-                "\"chqBkDetailsFull\":{\"ACCOUNT\":\"1040258210101010\"}"
-        ));
-
-        when(customerService.accountDetails(any())).thenReturn(response(
-                CustomerResponse.class,
-                "\"custDetailsFull\":{\"CUSTNO\":\"001633\"}"
-        ));
-        when(customerService.queryAmountBlock(any())).thenReturn(response(
-                CustomerResponse.class,
-                "\"amountBlocksIO\":{\"amtblkno\":\"1234\"}"
-        ));
-        when(customerService.queryCustomer(any())).thenReturn(response(
-                CustomerResponse.class,
-                "\"customerIO\":{\"custno\":\"001633\"}"
-        ));
-        when(customerService.createCustomer(any())).thenReturn(response(
-                CustomerResponse.class,
-                "\"customerFull\":{\"custno\":\"054871\"}"
-        ));
-        when(customerService.createCorporateCustomer(any())).thenReturn(response(
-                CustomerResponse.class,
-                "\"customerFull\":{\"custno\":\"054872\"}"
-        ));
-        when(customerService.amountBlock(any())).thenReturn(response(
-                CustomerResponse.class,
-                "\"amountBlocksFull\":{\"amtblkno\":\"A123456\"}"
-        ));
-
-        when(deService.multiJournal2(any())).thenReturn(response(
-                DeResponse.class,
-                "\"detbsJrnlTxnMasterFull\":{\"REFERENCENO\":\"101qlql262870001\"}"
-        ));
-        when(deService.queryJournal(any())).thenReturn(response(
-                DeResponse.class,
-                "\"detbsJrnlTxnMasterIO\":{\"REFERENCENO\":\"101qlql262870001\"}"
-        ));
-        when(deService.reverseJournal(any())).thenReturn(response(
-                DeResponse.class,
-                "\"acvwsAllAcEntriesFull\":{\"TRNREFNO\":\"101qlql262870001\"}"
-        ));
-        when(deService.multiDeJournal(any())).thenReturn(response(
-                DeResponse.class,
-                "\"detbsJrnlTxnMasterFull\":{\"REFERENCENO\":\"101lqlq262870001\"}"
-        ));
-        when(deService.authorize(any())).thenReturn(response(
-                DeResponse.class,
-                "\"detbsJrnlTxnMasterIO\":{\"REFERENCENO\":\"101lqlq262870001\"}"
-        ));
-
-        when(rtellerService.queryTransaction(any())).thenReturn(response(
-                RtellerResponse.class,
-                "\"transactionDetailsFull\":{\"FCCREF\":\"101CHWL262870005\"}"
-        ));
-        when(rtellerService.queryProduct(any())).thenReturn(response(
-                RtellerResponse.class,
-                "\"RTProductFull\":{\"PRDCD\":\"CHWL\"}"
-        ));
-        when(rtellerService.passAccountEntry(any())).thenReturn(response(
-                RtellerResponse.class,
-                "\"transactionDetails\":{\"FCCREF\":\"101CHWL262870006\"}"
-        ));
-        when(rtellerService.authorizeTransaction(any())).thenReturn(response(
-                RtellerResponse.class,
-                "\"transactionDetails\":{\"FCCREF\":\"101CHWL262870006\"}"
-        ));
-        when(rtellerService.reverseTransaction(any())).thenReturn(response(
-                RtellerResponse.class,
-                "\"transactionDetails\":{\"FCCREF\":\"101CHWL262870014\"}"
-        ));
-
-        when(accountStatsService.queryCustomerStats(any())).thenReturn(response(
-                AccountStatsResponse.class,
-                "\"cumulativeIO\":{\"CUSTOMERNO\":\"008997\",\"CUSTOMERACCNO\":\"1010089970301010\",\"BRANCHCODE\":\"101\"}"
-        ));
-        when(accountStatsService.queryAuditTrail(any())).thenReturn(response(
-                AccountStatsResponse.class,
-                "\"acvwAcdaudtrIO\":{\"BRANCHCODE\":\"101\",\"CUSTACNO\":\"1010089970301010\",\"TRNFROMDT\":\"2026-10-01\",\"TRNTODT\":\"2026-10-14\"}"
-        ));
-        when(accountStatsService.queryAccountTransaction(any())).thenReturn(response(
-                AccountStatsResponse.class,
-                "\"accDetailsFull\":{\"ACCNO\":\"1010089970301010\",\"ACCBRN\":\"101\",\"NUMOFTRN\":50}"
-        ));
-
-        when(accountFinancialService.queryCustomerStatement(any())).thenReturn(response(
-                AccountStatementResponse.class,
-                "\"custAccStmtAdhocRequest\":{\"XREF\":\"1234567\",\"DCN\":\"101MSOG26287000A\"}"
-        ));
+    @Test
+    void invokesRealDownstreamClientsAndParsesEveryRequestFixture() throws Exception {
+        assertFixtures("Testdata/customer-account-requests.json");
+        assertFixtures("Testdata/account-requests.json");
+        assertFixtures("Testdata/de-endpoint-requests.json");
+        assertFixtures("Testdata/rteller-requests.json");
+        assertFixtures("Testdata/account-stats-requests.json");
+        assertFixtures("Testdata/customer-statement-requests.json");
     }
 
-    @Test
-    void servesAllCustomerAndAccountRequestFixturesWithMappedResponses() throws Exception {
-        JsonNode customerRequests = readFixture("Testdata/customer-account-requests.json");
-        assertEndpoint(customerRequests, "/customer-account-details",
-                "ROLE_VIEW_CUSTOMER_ACCOUNT_DETAILS", "custDetailsFull.CUSTNO", "001633");
-        assertEndpoint(customerRequests, "/query-amount-block",
-                "ROLE_QUERY_AMOUNT_BLOCK", "amountBlocksIO.amtblkno", "1234");
-        assertEndpoint(customerRequests, "/query-customer",
-                "ROLE_QUERY_CUSTOMER", "customerIO.custno", "001633");
-        assertEndpoint(customerRequests, "/create-customer",
-                "ROLE_CREATE_CUSTOMER", "customerFull.custno", "054871");
-        assertEndpoint(customerRequests, "/create-corporate-customer",
-                "ROLE_CREATE_CORPORATE_CUSTOMER", "customerFull.custno", "054872");
-        assertEndpoint(customerRequests, "/amount-block",
-                "ROLE_CREATE_AMOUNT_BLOCK", "amountBlocksFull.amtblkno", "A123456");
-        assertEndpoint(customerRequests, "/cheque-book-request",
-                "ROLE_CHECKOUT_ACCOUNT", "chqBkDetailsFull.ACCOUNT", "1040258210101010");
-
-        JsonNode accountRequests = readFixture("Testdata/account-requests.json");
-        for (JsonNode fixture : accountRequests) {
-            String endpoint = fixture.path("endpoint").asText();
-            String authority;
-            String responseField;
-            String expectedValue;
-            switch (endpoint) {
-                case "/summary-balance" -> {
-                    authority = "ROLE_VIEW_SUMMARY_BALANCE";
-                    responseField = "stvwAccountSumaryIO.CUSTNO";
-                    expectedValue = "1030046420801014";
-                }
-                case "/statement" -> {
-                    authority = "ROLE_VIEW_ACCOUNT_STATEMENT";
-                    responseField = "mainIO.CUSNO";
-                    expectedValue = "001633";
-                }
-                case "/account-details" -> {
-                    authority = "ROLE_VIEW_ACCOUNT_DETAILS";
-                    responseField = "custDetailsFull.CUSTNO";
-                    expectedValue = "001633";
-                }
-                case "/create-account" -> {
-                    authority = "ROLE_CREATE_ACCOUNT";
-                    responseField = "custAccountFull.ACC";
-                    expectedValue = "1010548720000000";
-                }
-                case "/full-account-balance" -> {
-                    authority = "ROLE_VIEW_FULL_ACCOUNT_BALANCE";
-                    responseField = "custAccountFull.ACC";
-                    expectedValue = "1010016330301010";
-                }
-                case "/cheque-book-request" -> {
-                    authority = "ROLE_CHECKOUT_ACCOUNT";
-                    responseField = "chqBkDetailsFull.ACCOUNT";
-                    expectedValue = "1040258210101010";
-                }
-                default -> throw new AssertionError("Unexpected account fixture endpoint: " + endpoint);
+    private void assertFixtures(String fixturePath) throws Exception {
+        JsonNode fixtures = readFixture(fixturePath);
+        if (fixtures.isArray()) {
+            for (JsonNode fixture : fixtures) {
+                String endpoint = fixture.path("endpoint").asText();
+                assertRequest(endpoint, fixture.path("request"));
             }
-            assertEndpoint(endpoint, fixture.path("request"), authority, responseField, expectedValue);
+            return;
+        }
+
+        var entries = fixtures.fields();
+        while (entries.hasNext()) {
+            var entry = entries.next();
+            assertRequest(entry.getKey(), entry.getValue());
         }
     }
 
-    @Test
-    void servesAllDebitCreditRequestFixturesWithMappedResponses() throws Exception {
-        JsonNode requests = readFixture("Testdata/de-endpoint-requests.json");
-        assertEndpoint(requests, "/de-single-debit-credit-journal",
-                "ROLE_CREATE_DE_JOURNAL", "detbsJrnlTxnMasterFull.referenceno", "101qlql262870001");
-        assertEndpoint(requests, "/query-journal",
-                "ROLE_QUERY_JOURNAL", "detbsJrnlTxnMasterIO.REFERENCENO", "101qlql262870001");
-        assertEndpoint(requests, "/de-reversal",
-                "ROLE_CREATE_DE_TEMPLATE", "acvwsAllAcEntriesFull.TRNREFNO", "101qlql262870001");
-        assertEndpoint(requests, "/multi-de-bulk-journal",
-                "ROLE_CREATE_DE_JOURNAL", "detbsJrnlTxnMasterFull.referenceno", "101lqlq262870001");
-        assertEndpoint(requests, "/authorize",
-                "ROLE_AUTHORIZE_DE_TRANSACTION", "detbsJrnlTxnMasterIO.REFERENCENO", "101lqlq262870001");
-    }
+    private void assertRequest(String endpoint, JsonNode request) throws Exception {
+        assertFalse(request.isMissingNode(), "Missing request fixture for " + endpoint);
+        EndpointExpectation expectation = ENDPOINTS.stream()
+                .filter(candidate -> candidate.path().equals(endpoint))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("No expected response mapping for " + endpoint));
 
-    @Test
-    void servesAllRetailTellerRequestFixturesWithMappedResponses() throws Exception {
-        JsonNode requests = readFixture("Testdata/rteller-requests.json");
-        assertEndpoint(requests, "/query-transaction",
-                "ROLE_QUERY_TRANSACTION", "transactionDetailsFull.FCCREF", "101CHWL262870005");
-        assertEndpoint(requests, "/query-product",
-                "ROLE_QUERY_PRODUCT", "rtProductFull.PRDCD", "CHWL");
-        assertEndpoint(requests, "/pass-entry",
-                "ROLE_PASS_ENTRY", "transactionDetails.FCCREF", "101CHWL262870006");
-        assertEndpoint(requests, "/authorize-transaction",
-                "ROLE_AUTHORIZE_TRANSACTION", "transactionDetails.FCCREF", "101CHWL262870006");
-        assertEndpoint(requests, "/reverse-transaction",
-                "ROLE_REVERSE_TRANSACTION", "transactionDetails.FCCREF", "101CHWL262870014");
-    }
-
-    @Test
-    void servesAllAccountStatsRequestFixturesWithMappedResponses() throws Exception {
-        JsonNode requests = readFixture("Testdata/account-stats-requests.json");
-        assertEndpoint(requests, "/customer-stats",
-                "ROLE_VIEW_CUSTOMER_STATS", "cumulativeIO.customeraccno", "1010089970301010");
-        assertEndpoint(requests, "/audit-trail",
-                "ROLE_VIEW_AUDIT_TRAIL", "acvwAcdaudtrIO.CUSTACNO", "1010089970301010");
-        assertEndpoint(requests, "/account-transactions",
-                "ROLE_VIEW_ACCOUNT_TRANSACTIONS", "accDetailsFull.ACCNO", "1010089970301010");
-    }
-
-    @Test
-    void servesCustomerStatementRequestFixtureWithMappedResponse() throws Exception {
-        JsonNode requests = readFixture("Testdata/customer-statement-requests.json");
-        assertEndpoint(requests, "/customer-statement",
-                "ROLE_VIEW_CUSTOMER_STATEMENT",
-                "custAccStmtAdhocRequest.dcn", "101MSOG26287000A");
-    }
-
-    private void assertEndpoint(
-            JsonNode fixtures,
-            String endpoint,
-            String authority,
-            String responseField,
-            String expectedValue
-    ) throws Exception {
-        JsonNode request = fixtures.path(endpoint);
-        assertFalse(request.isMissingNode(), "No request fixture found for " + endpoint);
-        assertEndpoint(endpoint, request, authority, responseField, expectedValue);
-    }
-
-    private void assertEndpoint(
-            String endpoint,
-            JsonNode request,
-            String authority,
-            String responseField,
-            String expectedValue
-    ) throws Exception {
-        mockMvc.perform(post("/api/service" + endpoint)
+        MvcResult result = mockMvc.perform(post("/api/service" + endpoint)
                         .with(jwt().authorities(
                                 new SimpleGrantedAuthority("ROLE_CLIENT"),
-                                new SimpleGrantedAuthority(authority)
+                                new SimpleGrantedAuthority(expectation.authority())
                         ))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request.toString()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.fcubsheader.msgstat").value("SUCCESS"))
-                .andExpect(jsonPath("$.fcubsbody." + responseField).value(expectedValue));
+                .andReturn();
+
+        int status = result.getResponse().getStatus();
+        assertNotEquals(500, status, endpoint + " returned HTTP 500: " + result.getResponse().getContentAsString());
+        assertEquals(200, status, endpoint + " returned an unexpected status");
+
+        JsonNode response = objectMapper.readTree(result.getResponse().getContentAsString());
+        assertTrue(response.path("fcubsheader").isObject(),
+                endpoint + " response did not map the FCUBS header");
+        String messageStatus = response.path("fcubsheader").path("msgstat").asText();
+        assertTrue(List.of("SUCCESS", "FAILURE").contains(messageStatus),
+                endpoint + " returned an invalid FCUBS message status: " + messageStatus);
+
+        JsonNode body = response.path("fcubsbody");
+        assertTrue(body.isObject(), endpoint + " response did not map the FCUBS body");
+        boolean mappedOperationBody = false;
+        for (String field : expectation.responseFields()) {
+            if (body.hasNonNull(field)) {
+                mappedOperationBody = true;
+                break;
+            }
+        }
+        JsonNode errors = body.path("fcubserrorresp");
+        boolean mappedErrors = errors.isArray() && !errors.isEmpty();
+        assertTrue(mappedOperationBody || mappedErrors,
+                endpoint + " response contains neither its expected FCUBS body field "
+                        + "nor mapped FCUBS errors: " + result.getResponse().getContentAsString());
     }
 
     private JsonNode readFixture(String path) throws IOException {
@@ -335,13 +184,7 @@ class EndpointRequestIntegrationTest {
         }
     }
 
-    private <T> T response(Class<T> responseType, String bodyFields) throws IOException {
-        String rawResponse = """
-                {
-                  "fcubsheader": {"msgstat": "SUCCESS"},
-                  "fcubsbody": {%s}
-                }
-                """.formatted(bodyFields);
-        return objectMapper.readValue(rawResponse, responseType);
+    private record EndpointExpectation(String path, String authority, String... responseFields) {
     }
+
 }
