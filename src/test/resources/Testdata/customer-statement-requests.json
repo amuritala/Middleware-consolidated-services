@@ -1,0 +1,12 @@
+{
+  "/customer-statement": {
+    "xref": "1234567",
+    "acc": "1010095200801014",
+    "brn": "101",
+    "frmdt": "2026-08-01",
+    "todt": "2026-10-14",
+    "stmttype": "D",
+    "balancetype": "B",
+    "applychg": "N"
+  }
+}

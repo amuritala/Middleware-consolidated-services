@@ -3,6 +3,7 @@ package com.banking.api.controller;
 import com.banking.api.config.SecurityConfig;
 import com.banking.api.dto.AccountResponse;
 import com.banking.api.dto.AccountStatsResponse;
+import com.banking.api.dto.AccountStatementResponse;
 import com.banking.api.dto.CreateAccountResponse;
 import com.banking.api.dto.CustomerResponse;
 import com.banking.api.dto.DeResponse;
@@ -11,6 +12,7 @@ import com.banking.api.dto.RtellerResponse;
 import com.banking.api.dto.StatementResponse;
 import com.banking.api.dto.SummaryBalanceResponse;
 import com.banking.api.service.AccountService;
+import com.banking.api.service.AccountFinancialService;
 import com.banking.api.service.AccountStatsService;
 import com.banking.api.service.CustomerService;
 import com.banking.api.service.DeService;
@@ -43,7 +45,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         CustomerController.class,
         DeController.class,
         RtellerController.class,
-        AccountStatsController.class
+        AccountStatsController.class,
+        AccountFinancialController.class
 })
 @Import(SecurityConfig.class)
 class EndpointRequestIntegrationTest {
@@ -67,6 +70,9 @@ class EndpointRequestIntegrationTest {
 
     @MockitoBean
     private AccountStatsService accountStatsService;
+
+    @MockitoBean
+    private AccountFinancialService accountFinancialService;
 
     @BeforeEach
     void stubMappedDownstreamResponses() throws IOException {
@@ -174,6 +180,11 @@ class EndpointRequestIntegrationTest {
                 AccountStatsResponse.class,
                 "\"accDetailsFull\":{\"ACCNO\":\"1010089970301010\",\"ACCBRN\":\"101\",\"NUMOFTRN\":50}"
         ));
+
+        when(accountFinancialService.queryCustomerStatement(any())).thenReturn(response(
+                AccountStatementResponse.class,
+                "\"custAccStmtAdhocRequest\":{\"XREF\":\"1234567\",\"DCN\":\"101MSOG26287000A\"}"
+        ));
     }
 
     @Test
@@ -276,6 +287,14 @@ class EndpointRequestIntegrationTest {
                 "ROLE_VIEW_AUDIT_TRAIL", "acvwAcdaudtrIO.CUSTACNO", "1010089970301010");
         assertEndpoint(requests, "/account-transactions",
                 "ROLE_VIEW_ACCOUNT_TRANSACTIONS", "accDetailsFull.ACCNO", "1010089970301010");
+    }
+
+    @Test
+    void servesCustomerStatementRequestFixtureWithMappedResponse() throws Exception {
+        JsonNode requests = readFixture("Testdata/customer-statement-requests.json");
+        assertEndpoint(requests, "/customer-statement",
+                "ROLE_VIEW_CUSTOMER_STATEMENT",
+                "custAccStmtAdhocRequest.dcn", "101MSOG26287000A");
     }
 
     private void assertEndpoint(
