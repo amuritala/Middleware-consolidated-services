@@ -2,6 +2,7 @@ package com.banking.api.controller;
 
 import com.banking.api.config.SecurityConfig;
 import com.banking.api.dto.AccountResponse;
+import com.banking.api.dto.AccountStatsResponse;
 import com.banking.api.dto.CreateAccountResponse;
 import com.banking.api.dto.CustomerResponse;
 import com.banking.api.dto.DeResponse;
@@ -10,6 +11,7 @@ import com.banking.api.dto.RtellerResponse;
 import com.banking.api.dto.StatementResponse;
 import com.banking.api.dto.SummaryBalanceResponse;
 import com.banking.api.service.AccountService;
+import com.banking.api.service.AccountStatsService;
 import com.banking.api.service.CustomerService;
 import com.banking.api.service.DeService;
 import com.banking.api.service.RtellerService;
@@ -40,7 +42,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         AccountController.class,
         CustomerController.class,
         DeController.class,
-        RtellerController.class
+        RtellerController.class,
+        AccountStatsController.class
 })
 @Import(SecurityConfig.class)
 class EndpointRequestIntegrationTest {
@@ -61,6 +64,9 @@ class EndpointRequestIntegrationTest {
 
     @MockitoBean
     private RtellerService rtellerService;
+
+    @MockitoBean
+    private AccountStatsService accountStatsService;
 
     @BeforeEach
     void stubMappedDownstreamResponses() throws IOException {
@@ -155,6 +161,19 @@ class EndpointRequestIntegrationTest {
                 RtellerResponse.class,
                 "\"transactionDetails\":{\"FCCREF\":\"101CHWL262870014\"}"
         ));
+
+        when(accountStatsService.queryCustomerStats(any())).thenReturn(response(
+                AccountStatsResponse.class,
+                "\"cumulativeIO\":{\"CUSTOMERNO\":\"008997\",\"CUSTOMERACCNO\":\"1010089970301010\",\"BRANCHCODE\":\"101\"}"
+        ));
+        when(accountStatsService.queryAuditTrail(any())).thenReturn(response(
+                AccountStatsResponse.class,
+                "\"acvwAcdaudtrIO\":{\"BRANCHCODE\":\"101\",\"CUSTACNO\":\"1010089970301010\",\"TRNFROMDT\":\"2026-10-01\",\"TRNTODT\":\"2026-10-14\"}"
+        ));
+        when(accountStatsService.queryAccountTransaction(any())).thenReturn(response(
+                AccountStatsResponse.class,
+                "\"accDetailsFull\":{\"ACCNO\":\"1010089970301010\",\"ACCBRN\":\"101\",\"NUMOFTRN\":50}"
+        ));
     }
 
     @Test
@@ -246,6 +265,17 @@ class EndpointRequestIntegrationTest {
                 "ROLE_AUTHORIZE_TRANSACTION", "transactionDetails.FCCREF", "101CHWL262870006");
         assertEndpoint(requests, "/reverse-transaction",
                 "ROLE_REVERSE_TRANSACTION", "transactionDetails.FCCREF", "101CHWL262870014");
+    }
+
+    @Test
+    void servesAllAccountStatsRequestFixturesWithMappedResponses() throws Exception {
+        JsonNode requests = readFixture("Testdata/account-stats-requests.json");
+        assertEndpoint(requests, "/customer-stats",
+                "ROLE_VIEW_CUSTOMER_STATS", "cumulativeIO.customeraccno", "1010089970301010");
+        assertEndpoint(requests, "/audit-trail",
+                "ROLE_VIEW_AUDIT_TRAIL", "acvwAcdaudtrIO.CUSTACNO", "1010089970301010");
+        assertEndpoint(requests, "/account-transactions",
+                "ROLE_VIEW_ACCOUNT_TRANSACTIONS", "accDetailsFull.ACCNO", "1010089970301010");
     }
 
     private void assertEndpoint(

@@ -1,0 +1,20 @@
+{
+  "/customer-stats": {
+    "customerno": "008997",
+    "customeraccno": "1010089970301010",
+    "branchcode": "101"
+  },
+  "/audit-trail": {
+    "branchcode": "101",
+    "custacno": "1010089970301010",
+    "trnfromdt": "2026-10-01",
+    "trntodt": "2026-10-14",
+    "action": "",
+    "chequeno": ""
+  },
+  "/account-transactions": {
+    "numoftrn": 50,
+    "accno": "1010089970301010",
+    "accbrn": "101"
+  }
+}
