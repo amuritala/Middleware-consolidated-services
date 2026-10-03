@@ -58,7 +58,7 @@ class EndpointRequestIntegrationTest {
 
     private static final List<EndpointExpectation> ENDPOINTS = List.of(
             new EndpointExpectation("/customer-account-details", "ROLE_VIEW_CUSTOMER_ACCOUNT_DETAILS",
-                    "custDetailsFull", "custDetailsIO"),
+                    "sttmsCustomerFull", "custDetailsFull", "custDetailsIO"),
             new EndpointExpectation("/query-amount-block", "ROLE_QUERY_AMOUNT_BLOCK",
                     "amountBlocksFull", "amountBlocksIO"),
             new EndpointExpectation("/query-customer", "ROLE_QUERY_CUSTOMER",
