@@ -211,10 +211,7 @@ public class WebConfig {
             ServletRequestAttributes attributes =
                     (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attributes != null) {
-                String path = request.url().getPath();
-                String operation = path.replaceFirst("^/+", "").replaceFirst("^api/v1/", "");
                 attributes.getRequest().setAttribute("downstream.serviceName", serviceName);
-                attributes.getRequest().setAttribute("downstream.operation", operation);
             }
             return next.exchange(request);
         };

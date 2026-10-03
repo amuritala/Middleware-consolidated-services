@@ -5,7 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.http.ResponseEntity;
@@ -37,7 +39,6 @@ public class DownstreamAuditAspect {
                 (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         String serviceName = requestAttribute(requestAttributes, "downstream.serviceName",
                 joinPoint.getSignature().getDeclaringType().getSimpleName());
-        String operation = requestAttribute(requestAttributes, "downstream.operation", "unknown");
         int status = 200;
         String response = null;
 
@@ -57,7 +58,11 @@ public class DownstreamAuditAspect {
                 DownstreamAudit audit = new DownstreamAudit();
                 audit.setUserId(userId);
                 audit.setServiceName(serviceName);
-                audit.setOperation(operation);
+                audit.setOperation(requestAttribute(
+                        requestAttributes,
+                        "downstream.operation",
+                        joinPoint.getSignature().getName()
+                ));
                 audit.setRequest(request);
                 audit.setResponse(response);
                 audit.setHttpStatus(status);
@@ -68,6 +73,18 @@ public class DownstreamAuditAspect {
                 log.error("Unable to persist downstream audit record", exception);
             }
 
+        }
+    }
+
+    @Before("execution(public * com.banking.api.service..*.*(..))")
+    public void captureServiceOperation(JoinPoint joinPoint) {
+        ServletRequestAttributes requestAttributes =
+                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (requestAttributes != null) {
+            requestAttributes.getRequest().setAttribute(
+                    "downstream.operation",
+                    joinPoint.getSignature().getName()
+            );
         }
     }
 
