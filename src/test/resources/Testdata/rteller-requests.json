@@ -1,0 +1,34 @@
+{
+  "/query-transaction": {
+    "xref": "ert1234",
+    "fccref": "101CHWL262870005"
+  },
+  "/query-product": {
+    "prdcd": "CHWL"
+  },
+  "/pass-entry": {
+    "xref": "rtrtr",
+    "batchno": "qrth",
+    "prd": "CHWL",
+    "branchcode": "101",
+    "dracc": "1010001270801016",
+    "lcyamt": 100,
+    "narration": "Initial Deposit2",
+    "txnamt": 100,
+    "cracc": "1010010120801016",
+    "crbrn": "101"
+  },
+  "/authorize-transaction": {
+    "xref": "erttee3",
+    "prd": "CHWL",
+    "brn": "101",
+    "fccref": "101CHWL262870006"
+  },
+  "/reverse-transaction": {
+    "fccref": "101CHWL262870014",
+    "prd": "CHWL",
+    "brn": "101",
+    "batchno": "qrth",
+    "xref": "rtrtr"
+  }
+}

@@ -6,11 +6,13 @@ import com.banking.api.dto.CreateAccountResponse;
 import com.banking.api.dto.CustomerResponse;
 import com.banking.api.dto.DeResponse;
 import com.banking.api.dto.FullAccountBalanceResponse;
+import com.banking.api.dto.RtellerResponse;
 import com.banking.api.dto.StatementResponse;
 import com.banking.api.dto.SummaryBalanceResponse;
 import com.banking.api.service.AccountService;
 import com.banking.api.service.CustomerService;
 import com.banking.api.service.DeService;
+import com.banking.api.service.RtellerService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,7 +36,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(controllers = {AccountController.class, CustomerController.class, DeController.class})
+@WebMvcTest(controllers = {
+        AccountController.class,
+        CustomerController.class,
+        DeController.class,
+        RtellerController.class
+})
 @Import(SecurityConfig.class)
 class EndpointRequestIntegrationTest {
 
@@ -51,6 +58,9 @@ class EndpointRequestIntegrationTest {
 
     @MockitoBean
     private DeService deService;
+
+    @MockitoBean
+    private RtellerService rtellerService;
 
     @BeforeEach
     void stubMappedDownstreamResponses() throws IOException {
@@ -123,6 +133,27 @@ class EndpointRequestIntegrationTest {
         when(deService.authorize(any())).thenReturn(response(
                 DeResponse.class,
                 "\"detbsJrnlTxnMasterIO\":{\"REFERENCENO\":\"101lqlq262870001\"}"
+        ));
+
+        when(rtellerService.queryTransaction(any())).thenReturn(response(
+                RtellerResponse.class,
+                "\"transactionDetailsFull\":{\"FCCREF\":\"101CHWL262870005\"}"
+        ));
+        when(rtellerService.queryProduct(any())).thenReturn(response(
+                RtellerResponse.class,
+                "\"RTProductFull\":{\"PRDCD\":\"CHWL\"}"
+        ));
+        when(rtellerService.passAccountEntry(any())).thenReturn(response(
+                RtellerResponse.class,
+                "\"transactionDetails\":{\"FCCREF\":\"101CHWL262870006\"}"
+        ));
+        when(rtellerService.authorizeTransaction(any())).thenReturn(response(
+                RtellerResponse.class,
+                "\"transactionDetails\":{\"FCCREF\":\"101CHWL262870006\"}"
+        ));
+        when(rtellerService.reverseTransaction(any())).thenReturn(response(
+                RtellerResponse.class,
+                "\"transactionDetails\":{\"FCCREF\":\"101CHWL262870014\"}"
         ));
     }
 
@@ -200,6 +231,21 @@ class EndpointRequestIntegrationTest {
                 "ROLE_CREATE_DE_JOURNAL", "detbsJrnlTxnMasterFull.referenceno", "101lqlq262870001");
         assertEndpoint(requests, "/authorize",
                 "ROLE_AUTHORIZE_DE_TRANSACTION", "detbsJrnlTxnMasterIO.REFERENCENO", "101lqlq262870001");
+    }
+
+    @Test
+    void servesAllRetailTellerRequestFixturesWithMappedResponses() throws Exception {
+        JsonNode requests = readFixture("Testdata/rteller-requests.json");
+        assertEndpoint(requests, "/query-transaction",
+                "ROLE_QUERY_TRANSACTION", "transactionDetailsFull.FCCREF", "101CHWL262870005");
+        assertEndpoint(requests, "/query-product",
+                "ROLE_QUERY_PRODUCT", "rtProductFull.PRDCD", "CHWL");
+        assertEndpoint(requests, "/pass-entry",
+                "ROLE_PASS_ENTRY", "transactionDetails.FCCREF", "101CHWL262870006");
+        assertEndpoint(requests, "/authorize-transaction",
+                "ROLE_AUTHORIZE_TRANSACTION", "transactionDetails.FCCREF", "101CHWL262870006");
+        assertEndpoint(requests, "/reverse-transaction",
+                "ROLE_REVERSE_TRANSACTION", "transactionDetails.FCCREF", "101CHWL262870014");
     }
 
     private void assertEndpoint(
