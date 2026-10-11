@@ -53,6 +53,9 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username and password are required");
         }
 
+        log.debug("Requesting Keycloak password-grant token: realm={}, clientId={}, clientSecretConfigured={}",
+                realm, clientId, !clientSecret.isBlank());
+
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("grant_type", "password");
         form.add("client_id", clientId);
@@ -70,7 +73,8 @@ public class AuthService {
                 .retrieve()
                 .onStatus(HttpStatusCode::is4xxClientError, this::handleClientError)
                 .onStatus(HttpStatusCode::is5xxServerError, response -> {
-                    log.error("Keycloak token endpoint returned {}", response.statusCode());
+                    log.error("Keycloak token endpoint returned {} for realm={} clientId={}",
+                            response.statusCode(), realm, clientId);
                     return response.releaseBody().thenReturn(new ResponseStatusException(
                             HttpStatus.BAD_GATEWAY, "Keycloak authentication service is unavailable"));
                 })
@@ -102,32 +106,59 @@ public class AuthService {
         return response.bodyToMono(String.class)
                 .defaultIfEmpty("")
                 .map(body -> {
-                    String errorCode = readKeycloakErrorCode(body);
+                    KeycloakError keycloakError = readKeycloakError(body);
+                    String errorCode = keycloakError.code();
+                    String errorDescription = sanitizeLogValue(keycloakError.description());
                     if ("invalid_grant".equals(errorCode)) {
-                        log.warn("Keycloak rejected login credentials with status {}", response.statusCode());
+                        log.warn("Keycloak rejected password-grant credentials: status={}, error={}, "
+                                        + "description={}, realm={}, clientId={}",
+                                response.statusCode(), errorCode, errorDescription, realm, clientId);
                         return new ResponseStatusException(
                                 HttpStatus.UNAUTHORIZED, "Invalid username or password");
                     }
 
-                    log.error("Keycloak rejected token request with status {} and error code {}",
-                            response.statusCode(), errorCode == null ? "unknown" : errorCode);
+                    log.error("Keycloak rejected password-grant token request: status={}, error={}, "
+                                    + "description={}, realm={}, clientId={}, clientSecretConfigured={}. "
+                                    + "Check client enabled status, Direct access grants, client authentication, "
+                                    + "and the runtime client secret.",
+                            response.statusCode(),
+                            errorCode == null ? "unknown" : errorCode,
+                            errorDescription,
+                            realm,
+                            clientId,
+                            !clientSecret.isBlank());
                     return new ResponseStatusException(
                             HttpStatus.BAD_GATEWAY,
                             "Keycloak rejected the token request; check client configuration and direct access grants");
                 });
     }
 
-    private String readKeycloakErrorCode(String responseBody) {
+    private KeycloakError readKeycloakError(String responseBody) {
         if (responseBody.isBlank()) {
-            return null;
+            return new KeycloakError(null, null);
         }
         try {
-            JsonNode error = objectMapper.readTree(responseBody).get("error");
-            return error != null && error.isTextual() ? error.asText() : null;
+            JsonNode errorResponse = objectMapper.readTree(responseBody);
+            JsonNode error = errorResponse.get("error");
+            JsonNode description = errorResponse.get("error_description");
+            return new KeycloakError(
+                    error != null && error.isTextual() ? error.asText() : null,
+                    description != null && description.isTextual() ? description.asText() : null);
         } catch (JsonProcessingException exception) {
-            log.debug("Keycloak returned a non-JSON error response");
-            return null;
+            log.debug("Keycloak returned a non-JSON error response for realm={} clientId={}", realm, clientId);
+            return new KeycloakError(null, null);
         }
+    }
+
+    private String sanitizeLogValue(String value) {
+        if (value == null || value.isBlank()) {
+            return "not provided";
+        }
+        String singleLine = value.replaceAll("[\\r\\n\\t\\p{Cntrl}]", " ").trim();
+        return singleLine.length() > 512 ? singleLine.substring(0, 512) : singleLine;
+    }
+
+    private record KeycloakError(String code, String description) {
     }
 
     @Data
