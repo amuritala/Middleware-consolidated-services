@@ -3,7 +3,11 @@ package com.banking.api.service;
 import com.banking.api.dto.AuthRequest;
 import com.banking.api.dto.AuthResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.ClientResponse;
@@ -11,7 +15,11 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
+import java.util.stream.Collectors;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class AuthServiceTest {
@@ -70,24 +78,50 @@ class AuthServiceTest {
 
     @Test
     void mapsKeycloakClientConfigurationErrorsToBadGateway() {
+        Logger logger = (Logger) LoggerFactory.getLogger(AuthService.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
         AuthService service = new AuthService(
                 WebClient.builder().exchangeFunction(request -> Mono.just(
                         ClientResponse.create(HttpStatus.BAD_REQUEST)
                                 .header("Content-Type", "application/json")
-                                .body("{\"error\":\"unauthorized_client\"}")
+                                .body("""
+                                        {
+                                          "error":"unauthorized_client",
+                                          "error_description":"Client not permitted to use direct access grants\\nCheck client settings"
+                                        }
+                                        """)
                                 .build())),
                 new ObjectMapper(), "http://keycloak", "banking", "banking-service-api", "client-secret");
         AuthRequest request = new AuthRequest();
         request.setUsername("customer");
-        request.setPassword("password");
+        request.setPassword("password-value");
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class, () -> service.login(request));
+        try {
+            ResponseStatusException exception = assertThrows(
+                    ResponseStatusException.class, () -> service.login(request));
 
-        assertEquals(HttpStatus.BAD_GATEWAY, exception.getStatusCode());
-        assertEquals(
-                "Keycloak rejected the token request; check client configuration and direct access grants",
-                exception.getReason());
+            assertEquals(HttpStatus.BAD_GATEWAY, exception.getStatusCode());
+            assertEquals(
+                    "Keycloak rejected the token request; check client configuration and direct access grants",
+                    exception.getReason());
+
+            String loggedMessages = appender.list.stream()
+                    .map(ILoggingEvent::getFormattedMessage)
+                    .collect(Collectors.joining("\n"));
+            assertTrue(loggedMessages.contains("unauthorized_client"));
+            assertTrue(loggedMessages.contains(
+                    "Client not permitted to use direct access grants Check client settings"));
+            assertTrue(loggedMessages.contains("realm=banking"));
+            assertTrue(loggedMessages.contains("clientId=banking-service-api"));
+            assertTrue(loggedMessages.contains("clientSecretConfigured=true"));
+            assertFalse(loggedMessages.contains("client-secret"));
+            assertFalse(loggedMessages.contains("password-value"));
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
     }
 
     @Test
