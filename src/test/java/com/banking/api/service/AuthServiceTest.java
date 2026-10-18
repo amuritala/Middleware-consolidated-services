@@ -2,6 +2,7 @@ package com.banking.api.service;
 
 import com.banking.api.dto.AuthRequest;
 import com.banking.api.dto.AuthResponse;
+import com.banking.api.dto.RefreshTokenRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -174,5 +175,115 @@ class AuthServiceTest {
                 ResponseStatusException.class, () -> service.login(request));
 
         assertEquals(HttpStatus.BAD_GATEWAY, exception.getStatusCode());
+    }
+
+    @Test
+    void exchangesRefreshTokenForNewTokens() {
+        WebClient.Builder webClientBuilder = WebClient.builder()
+                .exchangeFunction(request -> {
+                    assertEquals("/realms/banking/protocol/openid-connect/token",
+                            request.url().getPath());
+                    return Mono.just(ClientResponse.create(HttpStatus.OK)
+                            .header("Content-Type", "application/json")
+                            .body("""
+                                    {"access_token": "new-access", "refresh_token": "new-refresh"}
+                                    """)
+                            .build());
+                });
+        AuthService service = new AuthService(
+                webClientBuilder, new ObjectMapper(),
+                "http://keycloak", "banking", "banking-service-api", "client-secret");
+        RefreshTokenRequest request = new RefreshTokenRequest();
+        request.setRefreshToken("old-refresh");
+
+        AuthResponse response = service.refresh(request);
+
+        assertEquals("new-access", response.getAccessToken());
+        assertEquals("new-refresh", response.getRefreshToken());
+    }
+
+    @Test
+    void returnsUnauthorizedWhenRefreshTokenIsRejected() {
+        AuthService service = new AuthService(
+                WebClient.builder().exchangeFunction(request -> Mono.just(
+                        ClientResponse.create(HttpStatus.BAD_REQUEST)
+                                .header("Content-Type", "application/json")
+                                .body("{\"error\":\"invalid_grant\"}")
+                                .build())),
+                new ObjectMapper(),
+                "http://keycloak", "banking", "banking-service-api", "client-secret");
+        RefreshTokenRequest request = new RefreshTokenRequest();
+        request.setRefreshToken("expired");
+
+        ResponseStatusException exception =
+                assertThrows(ResponseStatusException.class, () -> service.refresh(request));
+
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+    }
+
+    @Test
+    void rejectsBlankRefreshTokenBeforeCallingKeycloak() {
+        AuthService service = new AuthService(
+                WebClient.builder().exchangeFunction(request -> {
+                    throw new AssertionError("Keycloak must not be called");
+                }),
+                new ObjectMapper(),
+                "http://keycloak", "banking", "banking-service-api", "client-secret");
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> service.refresh(new RefreshTokenRequest()));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+    }
+
+    private AuthService logoutService(HttpStatus keycloakStatus, String[] capturedPath) {
+        return new AuthService(
+                WebClient.builder().exchangeFunction(request -> {
+                    capturedPath[0] = request.url().getPath();
+                    return Mono.just(ClientResponse.create(keycloakStatus)
+                            .header("Content-Type", "application/json")
+                            .body(keycloakStatus == HttpStatus.BAD_REQUEST ? "{\"error\":\"invalid_grant\"}" : "")
+                            .build());
+                }),
+                new ObjectMapper(),
+                "http://keycloak", "banking", "banking-service-api", "client-secret");
+    }
+
+    @Test
+    void logoutRevokesRefreshTokenAtKeycloak() {
+        String[] path = new String[1];
+        RefreshTokenRequest request = new RefreshTokenRequest();
+        request.setRefreshToken("refresh-value");
+
+        logoutService(HttpStatus.NO_CONTENT, path).logout(request);
+
+        assertEquals("/realms/banking/protocol/openid-connect/logout", path[0]);
+    }
+
+    @Test
+    void logoutIsIdempotentWhenSessionAlreadyEnded() {
+        RefreshTokenRequest request = new RefreshTokenRequest();
+        request.setRefreshToken("expired");
+
+        logoutService(HttpStatus.BAD_REQUEST, new String[1]).logout(request);
+    }
+
+    @Test
+    void logoutMapsKeycloakServerErrorsToBadGateway() {
+        RefreshTokenRequest request = new RefreshTokenRequest();
+        request.setRefreshToken("refresh-value");
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> logoutService(HttpStatus.SERVICE_UNAVAILABLE, new String[1]).logout(request));
+
+        assertEquals(HttpStatus.BAD_GATEWAY, exception.getStatusCode());
+    }
+
+    @Test
+    void logoutRejectsBlankRefreshToken() {
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> logoutService(HttpStatus.NO_CONTENT, new String[1]).logout(new RefreshTokenRequest()));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
     }
 }

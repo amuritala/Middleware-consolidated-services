@@ -2,6 +2,7 @@ package com.banking.api.service;
 
 import com.banking.api.dto.AuthRequest;
 import com.banking.api.dto.AuthResponse;
+import com.banking.api.dto.RefreshTokenRequest;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -53,17 +54,69 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username and password are required");
         }
 
-        log.debug("Requesting Keycloak password-grant token: realm={}, clientId={}, clientSecretConfigured={}",
-                realm, clientId, !clientSecret.isBlank());
-
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("grant_type", "password");
+        form.add("username", request.getUsername());
+        form.add("password", request.getPassword());
+
+        return requestTokens(form, "Invalid username or password");
+    }
+
+    public AuthResponse refresh(RefreshTokenRequest request) {
+        if (request == null || request.getRefreshToken() == null || request.getRefreshToken().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Refresh token is required");
+        }
+
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("grant_type", "refresh_token");
+        form.add("refresh_token", request.getRefreshToken());
+
+        return requestTokens(form, "Refresh token is invalid or expired");
+    }
+
+    public void logout(RefreshTokenRequest request) {
+        if (request == null || request.getRefreshToken() == null || request.getRefreshToken().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Refresh token is required");
+        }
+
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("client_id", clientId);
         if (!clientSecret.isBlank()) {
             form.add("client_secret", clientSecret);
         }
-        form.add("username", request.getUsername());
-        form.add("password", request.getPassword());
+        form.add("refresh_token", request.getRefreshToken());
+
+        webClient.post()
+                .uri("/realms/{realm}/protocol/openid-connect/logout", realm)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(BodyInserters.fromFormData(form))
+                .exchangeToMono(response -> {
+                    HttpStatusCode status = response.statusCode();
+                    // Keycloak answers 400 invalid_grant for an already-ended session; logout is idempotent.
+                    if (status.is2xxSuccessful() || status.value() == HttpStatus.BAD_REQUEST.value()) {
+                        return response.releaseBody();
+                    }
+                    log.error("Keycloak logout endpoint returned {} for realm={} clientId={}",
+                            status, realm, clientId);
+                    return response.releaseBody().then(Mono.error(new ResponseStatusException(
+                            HttpStatus.BAD_GATEWAY, "Keycloak authentication service is unavailable")));
+                })
+                .onErrorMap(WebClientRequestException.class, exception -> {
+                    log.error("Unable to reach the Keycloak logout endpoint", exception);
+                    return new ResponseStatusException(
+                            HttpStatus.BAD_GATEWAY, "Unable to reach Keycloak authentication service", exception);
+                })
+                .block();
+    }
+
+    private AuthResponse requestTokens(MultiValueMap<String, String> form, String invalidGrantMessage) {
+        log.debug("Requesting Keycloak token: grant={}, realm={}, clientId={}, clientSecretConfigured={}",
+                form.getFirst("grant_type"), realm, clientId, !clientSecret.isBlank());
+
+        form.add("client_id", clientId);
+        if (!clientSecret.isBlank()) {
+            form.add("client_secret", clientSecret);
+        }
 
         KeycloakTokenResponse tokenResponse = webClient.post()
                 .uri("/realms/{realm}/protocol/openid-connect/token", realm)
@@ -71,7 +124,7 @@ public class AuthService {
                 .accept(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromFormData(form))
                 .retrieve()
-                .onStatus(HttpStatusCode::is4xxClientError, this::handleClientError)
+                .onStatus(HttpStatusCode::is4xxClientError, response -> handleClientError(response, invalidGrantMessage))
                 .onStatus(HttpStatusCode::is5xxServerError, response -> {
                     log.error("Keycloak token endpoint returned {} for realm={} clientId={}",
                             response.statusCode(), realm, clientId);
@@ -102,7 +155,7 @@ public class AuthService {
         return new AuthResponse(tokenResponse.getAccessToken(), tokenResponse.getRefreshToken());
     }
 
-    private Mono<? extends Throwable> handleClientError(ClientResponse response) {
+    private Mono<? extends Throwable> handleClientError(ClientResponse response, String invalidGrantMessage) {
         return response.bodyToMono(String.class)
                 .defaultIfEmpty("")
                 .map(body -> {
@@ -110,14 +163,14 @@ public class AuthService {
                     String errorCode = keycloakError.code();
                     String errorDescription = sanitizeLogValue(keycloakError.description());
                     if ("invalid_grant".equals(errorCode)) {
-                        log.warn("Keycloak rejected password-grant credentials: status={}, error={}, "
+                        log.warn("Keycloak rejected grant: status={}, error={}, "
                                         + "description={}, realm={}, clientId={}",
                                 response.statusCode(), errorCode, errorDescription, realm, clientId);
                         return new ResponseStatusException(
-                                HttpStatus.UNAUTHORIZED, "Invalid username or password");
+                                HttpStatus.UNAUTHORIZED, invalidGrantMessage);
                     }
 
-                    log.error("Keycloak rejected password-grant token request: status={}, error={}, "
+                    log.error("Keycloak rejected token request: status={}, error={}, "
                                     + "description={}, realm={}, clientId={}, clientSecretConfigured={}. "
                                     + "Check client enabled status, Direct access grants, client authentication, "
                                     + "and the runtime client secret.",

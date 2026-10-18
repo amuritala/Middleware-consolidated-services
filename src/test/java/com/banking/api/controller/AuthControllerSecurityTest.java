@@ -49,4 +49,34 @@ class AuthControllerSecurityTest {
 
         verify(authService).login(any());
     }
+
+    @Test
+    void allowsAnonymousRefreshRequestThroughSecurity() throws Exception {
+        when(authService.refresh(any()))
+                .thenReturn(new AuthResponse("new-access", "new-refresh"));
+
+        mockMvc.perform(post("/api/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"refresh_token":"old-refresh"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(content().json("""
+                        {"access_token": "new-access", "refresh_token": "new-refresh"}
+                        """));
+
+        verify(authService).refresh(any());
+    }
+
+    @Test
+    void allowsAnonymousLogoutRequestThroughSecurity() throws Exception {
+        mockMvc.perform(post("/api/auth/logout")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"refresh_token":"old-refresh"}
+                                """))
+                .andExpect(status().isNoContent());
+
+        verify(authService).logout(any());
+    }
 }
