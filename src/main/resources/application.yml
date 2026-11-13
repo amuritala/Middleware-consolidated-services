@@ -75,3 +75,8 @@ logging:
     org:
       springframework:
         security=DEBUG:
+
+
+api:
+  wallet: 4a74-964b458bc3718a92
+  authorization: "Basic dXJqbnM1NG1rbDo0d2Y0NXlnZnNjdmNnaGtvcHRyZXdzeGN2eDg="
