@@ -27,7 +27,7 @@ public class OpenApiConfig {
                                                 .type(SecurityScheme.Type.HTTP)
                                                 .scheme("bearer")
                                                 .bearerFormat("JWT")
-                                                .description("Sign in through POST /api/auth/login, then paste the access_token here.")
+                                                .description("Sign in through the onboarding API (POST /api/auth/login), then paste the access_token here.")
                                 )
                 );
     }
