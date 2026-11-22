@@ -1,16 +1,12 @@
 package com.banking.api.controller;
 
-import com.banking.api.dto.AccountClass;
-import com.banking.api.dto.CustomerCategory;
-import com.banking.api.dto.Location;
+import com.banking.api.dto.*;
 import com.banking.api.service.AccountClassService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -39,5 +35,18 @@ public class AccountClassController {
     @GetMapping("/classes")
     public ResponseEntity<List<AccountClass>> getAllAccountClasses() {
         return ResponseEntity.ok(accountClassService.getAllAccountClasses());
+    }
+
+    //@PreAuthorize("hasAuthority('ROLE_VIEW_CUSTOMER_NIN')")
+    @PostMapping("/nin")
+    public ResponseEntity<NinResponse> ninDetails(@RequestBody NinRequest request) {
+        return ResponseEntity.ok(accountClassService.nin(request));
+    }
+
+
+    //@PreAuthorize("hasAuthority('ROLE_UPDATE_NIN')")
+    @PostMapping("/updateNin")
+    public ResponseEntity<NinUpdateResponse> ninDetails(@RequestBody UpdateNinRequest request) {
+        return ResponseEntity.ok(accountClassService.updatenin(request));
     }
 }

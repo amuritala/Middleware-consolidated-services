@@ -1,16 +1,6 @@
 package com.banking.api.controller;
 
-import com.banking.api.dto.AccountBalanceRequest;
-import com.banking.api.dto.AccountCreationRequest;
-import com.banking.api.dto.AccountDetailsRequest;
-import com.banking.api.dto.AccountNumberRequest;
-import com.banking.api.dto.AccountResponse;
-import com.banking.api.dto.ChequeBookRequest;
-import com.banking.api.dto.CreateAccountResponse;
-import com.banking.api.dto.FullAccountBalanceResponse;
-import com.banking.api.dto.StatementRequest;
-import com.banking.api.dto.StatementResponse;
-import com.banking.api.dto.SummaryBalanceResponse;
+import com.banking.api.dto.*;
 import com.banking.api.service.AccountService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
@@ -71,4 +61,28 @@ public class AccountController {
     public ResponseEntity<StatementResponse> statement(@RequestBody StatementRequest request) {
         return ResponseEntity.ok(accountService.statement(request));
     }
+
+   // @PreAuthorize("hasAuthority('ROLE_CREATE_STOPPAYMENT')")
+    @PostMapping("/stoppayment")
+    public ResponseEntity<CreateStopPaymentResponse> stoppayment(@RequestBody StopPaymentRequest request) {
+        return ResponseEntity.ok(accountService.stoppayment(request));
+    }
+
+
+     //@PreAuthorize("hasAuthority('ROLE_ACCOUNT_TRANSFER')")
+    @PostMapping("/accountclasstransfer")
+    public ResponseEntity<AccountClassTransferResponse> accountclasstransfer(@RequestBody AccountClassTransferRequest request) {
+        return ResponseEntity.ok(accountService.accountclasstransfer(request));
+    }
+
+    //@PreAuthorize("hasAuthority('ROLE_CREATE_TDACCOUNT')")
+    @PostMapping("/createtdaccount")
+    public ResponseEntity<CreateTdAccountResponse> createtdaccount(@RequestBody TdAccountRequest request) {
+        return ResponseEntity.ok(accountService.createtdaccount(request));
+    }
+
+
+
+
+
 }

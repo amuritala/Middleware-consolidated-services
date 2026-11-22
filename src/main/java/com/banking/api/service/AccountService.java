@@ -1,16 +1,6 @@
 package com.banking.api.service;
 
-import com.banking.api.dto.AccountBalanceRequest;
-import com.banking.api.dto.AccountCreationRequest;
-import com.banking.api.dto.AccountDetailsRequest;
-import com.banking.api.dto.AccountNumberRequest;
-import com.banking.api.dto.AccountResponse;
-import com.banking.api.dto.ChequeBookRequest;
-import com.banking.api.dto.CreateAccountResponse;
-import com.banking.api.dto.FullAccountBalanceResponse;
-import com.banking.api.dto.StatementRequest;
-import com.banking.api.dto.StatementResponse;
-import com.banking.api.dto.SummaryBalanceResponse;
+import com.banking.api.dto.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -86,6 +76,24 @@ public class AccountService {
         log.info("Getting statement for customer number {}", request.getCusno());
         return post("api/v1/Statement", request, StatementResponse.class, "getting account statement");
     }
+
+
+    public CreateStopPaymentResponse stoppayment(StopPaymentRequest request) {
+        log.info("Requesting stoppayment for account {}", request.getAccnumber() );
+        return post("api/v1/StopPayment", request, CreateStopPaymentResponse.class, "requesting for stoppayment");
+    }
+
+
+    public AccountClassTransferResponse accountclasstransfer(AccountClassTransferRequest request) {
+        log.info("Requesting account class transfer for account {}", request.getAcc() );
+        return post("api/v1/AccountClassTransfer", request, AccountClassTransferResponse.class, "requesting for account class transfer");
+    }
+
+    public CreateTdAccountResponse createtdaccount(TdAccountRequest request) {
+        log.info("creating term deposit account for customer {}", request.getCustno() );
+        return post("api/v1/CreateTdAccount", request, CreateTdAccountResponse.class, "creating termed deposit account");
+    }
+
 
     private <T> T post(String uri, Object request, Class<T> responseType, String operation) {
         return webClient

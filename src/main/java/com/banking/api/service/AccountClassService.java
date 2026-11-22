@@ -1,8 +1,6 @@
 package com.banking.api.service;
 
-import com.banking.api.dto.AccountClass;
-import com.banking.api.dto.CustomerCategory;
-import com.banking.api.dto.Location;
+import com.banking.api.dto.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.List;
+
+import static org.springframework.http.RequestEntity.post;
 
 @Service
 @Slf4j
@@ -36,6 +36,18 @@ public class AccountClassService {
         return getList("api/v1/accountclass/accountClass", AccountClass.class, "account classes");
     }
 
+
+    public NinResponse nin(NinRequest request) {
+        log.info("Getting Nin for customer number {}", request.getNin());
+        return post("api/v1/accountclass/check_nin", request, "getting nin");
+    }
+
+    public NinUpdateResponse updatenin(UpdateNinRequest request) {
+        log.info("Updating Nin for customer number {}", request.getCustomer_no());
+        return postU("api/v1/accountclass/updateNin", request, "updating nin");
+    }
+
+
     private <T> List<T> getList(String uri, Class<T> responseType, String operation) {
         return webClient.get()
                 .uri(uri)
@@ -55,4 +67,47 @@ public class AccountClassService {
             throw new IllegalStateException("Unable to deserialize raw response for " + operation, exception);
         }
     }
+
+    private NinResponse post(String uri, Object request, String operation) {
+        return webClient.post()
+                .uri(uri)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(String.class)
+                .doOnNext(rawResponse -> log.info("Raw response for {}: {}", operation, rawResponse))
+                .map(rawResponse -> readResponse(rawResponse, operation))
+                .doOnError(ex -> log.error("{} failed: {}", operation, ex.getMessage()))
+                .block();
+    }
+
+    private NinResponse readResponse(String rawResponse, String operation) {
+        try {
+            return objectMapper.readValue(rawResponse, NinResponse.class);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("Unable to deserialize raw response for " + operation, exception);
+        }
+    }
+
+    private NinUpdateResponse postU(String uri, Object request, String operation) {
+        return webClient.post()
+                .uri(uri)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(String.class)
+                .doOnNext(rawResponse -> log.info("Raw response for {}: {}", operation, rawResponse))
+                .map(rawResponse -> readResponseU(rawResponse, operation))
+                .doOnError(ex -> log.error("{} failed: {}", operation, ex.getMessage()))
+                .block();
+    }
+
+    private NinUpdateResponse readResponseU(String rawResponse, String operation) {
+        try {
+            return objectMapper.readValue(rawResponse, NinUpdateResponse.class);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("Unable to deserialize raw response for " + operation, exception);
+        }
+    }
+
+
+
 }
