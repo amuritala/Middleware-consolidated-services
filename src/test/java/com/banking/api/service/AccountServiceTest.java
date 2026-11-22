@@ -9,6 +9,7 @@ import com.banking.api.dto.AccountNumberRequest;
 import com.banking.api.dto.AccountCreationRequest;
 import com.banking.api.dto.ChequeBookRequest;
 import com.banking.api.dto.StatementRequest;
+import com.banking.api.dto.StopPaymentRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -24,6 +25,39 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class AccountServiceTest {
+
+    @Test
+    void preservesStopPaymentResponseAndFcubsFailure() throws Exception {
+        String responseJson = """
+                {
+                  "FCUBSBODY": {
+                    "FCUBSERRORRESP": [{"ERROR":[{"ECODE":"GW-ROUT0003","EDESC":"No data found"}]}],
+                    "FCUBSWARNINGRESP": [],
+                    "catmsStopPaymentsIO": {
+                      "ACCNUMBER":"123", "chargeMain":{"chargeDetails":[{"WAIVER":"Y"}]}
+                    },
+                    "catmsStopPaymentsPK": null
+                  },
+                  "FCUBSHEADER":{"MSGSTAT":"FAILURE"}
+                }
+                """;
+        WebClient webClient = WebClient.builder()
+                .baseUrl("http://account-service")
+                .exchangeFunction(request -> Mono.just(ClientResponse.create(HttpStatus.OK)
+                        .header("Content-Type", "application/json")
+                        .body(responseJson).build()))
+                .build();
+
+        var response = new AccountService(webClient, new ObjectMapper().findAndRegisterModules())
+                .stoppayment(new StopPaymentRequest());
+        assertEquals("FAILURE", response.getFcubsheader().getMsgstat());
+        assertEquals("GW-ROUT0003", response.getFcubsbody().getFcubserrorresp().get(0)
+                .getError().get(0).getEcode());
+        assertEquals("123", response.getFcubsbody().getCatmsStopPaymentsIO().get("ACCNUMBER"));
+        assertNotNull(response.getFcubsbody().getCatmsStopPaymentsIO().get("chargeMain"));
+        assertEquals("123", new ObjectMapper().valueToTree(response)
+                .path("fcubsbody").path("catmsStopPaymentsIO").path("ACCNUMBER").asText());
+    }
 
     @Test
     void mapsUppercaseCreateAccountEnvelopeAndMessageStatus() {

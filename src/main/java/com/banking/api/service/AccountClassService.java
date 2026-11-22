@@ -3,6 +3,7 @@ package com.banking.api.service;
 import com.banking.api.dto.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -10,8 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.List;
-
-import static org.springframework.http.RequestEntity.post;
 
 @Service
 @Slf4j
@@ -37,7 +36,7 @@ public class AccountClassService {
     }
 
 
-    public NinResponse nin(NinRequest request) {
+    public List<NinResponse> nin(NinRequest request) {
         log.info("Getting Nin for customer number {}", request.getNin());
         return post("api/v1/accountclass/check_nin", request, "getting nin");
     }
@@ -68,7 +67,7 @@ public class AccountClassService {
         }
     }
 
-    private NinResponse post(String uri, Object request, String operation) {
+    private List<NinResponse> post(String uri, Object request, String operation) {
         return webClient.post()
                 .uri(uri)
                 .bodyValue(request)
@@ -80,9 +79,18 @@ public class AccountClassService {
                 .block();
     }
 
-    private NinResponse readResponse(String rawResponse, String operation) {
+    private List<NinResponse> readResponse(String rawResponse, String operation) {
         try {
-            return objectMapper.readValue(rawResponse, NinResponse.class);
+            JsonNode response = objectMapper.readTree(rawResponse);
+            if (response == null || (!response.isArray() && !response.isObject())) {
+                throw new IllegalStateException("Unexpected response shape for " + operation);
+            }
+            if (response.isArray()) {
+                JavaType listType = objectMapper.getTypeFactory()
+                        .constructCollectionType(List.class, NinResponse.class);
+                return objectMapper.readValue(rawResponse, listType);
+            }
+            return List.of(objectMapper.treeToValue(response, NinResponse.class));
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("Unable to deserialize raw response for " + operation, exception);
         }
@@ -102,6 +110,14 @@ public class AccountClassService {
 
     private NinUpdateResponse readResponseU(String rawResponse, String operation) {
         try {
+            String trimmed = rawResponse.trim();
+            if (!trimmed.isEmpty() && trimmed.charAt(0) != '{'
+                    && trimmed.charAt(0) != '[' && trimmed.charAt(0) != '"') {
+                return new NinUpdateResponse(rawResponse);
+            }
+            if (trimmed.startsWith("\"")) {
+                return new NinUpdateResponse(objectMapper.readValue(rawResponse, String.class));
+            }
             return objectMapper.readValue(rawResponse, NinUpdateResponse.class);
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("Unable to deserialize raw response for " + operation, exception);

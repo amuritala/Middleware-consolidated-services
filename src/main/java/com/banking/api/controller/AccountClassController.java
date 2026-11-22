@@ -2,6 +2,7 @@ package com.banking.api.controller;
 
 import com.banking.api.dto.*;
 import com.banking.api.service.AccountClassService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -38,8 +39,10 @@ public class AccountClassController {
     }
 
     //@PreAuthorize("hasAuthority('ROLE_VIEW_CUSTOMER_NIN')")
+    @Operation(summary = "Look up a NIN",
+            description = "Returns all matching customers as an array; an empty array means no matches.")
     @PostMapping("/nin")
-    public ResponseEntity<NinResponse> ninDetails(@RequestBody NinRequest request) {
+    public ResponseEntity<List<NinResponse>> ninDetails(@RequestBody NinRequest request) {
         return ResponseEntity.ok(accountClassService.nin(request));
     }
 

@@ -395,8 +395,8 @@ class CustomerServiceTest {
         assertEquals("string", request.getRem());
         assertEquals("string", request.getAcc());
         assertEquals(0, request.getAmt().intValue());
-        assertEquals("2026-09-23T20:32:04.094Z", request.getExpdate().toString());
-        assertEquals("2026-09-23T20:32:04.094Z", request.getEffdate().toString());
+        assertEquals("2026-09-23T20:32:04.094Z", request.getExpdate().toInstant().toString());
+        assertEquals("2026-09-23T20:32:04.094Z", request.getEffdate().toInstant().toString());
         assertEquals("string", request.getAmtblkno());
         assertEquals("string", request.getBranch());
     }
