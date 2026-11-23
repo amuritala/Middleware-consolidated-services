@@ -1,3 +1,7 @@
+notification:
+  service:
+    url: ${NOTIFICATION_SERVICE_URL:http://localhost:9088}
+
 server:
   port: 8082
 

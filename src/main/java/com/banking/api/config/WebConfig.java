@@ -51,6 +51,9 @@ public class WebConfig {
     @Value("${rteller.service.url}")
     private String rTellerServiceUrl;
 
+    @Value("${notification.service.url}")
+    private String notificationServiceUrl;
+
     @Value("${customer.service.max-buffer-size}")
     private Integer maxBufferSize;
 
@@ -198,6 +201,14 @@ public class WebConfig {
                                 .maxInMemorySize(maxBufferSize * 1024))
                         .build())
                 .defaultHeader("Accept", mediaType)
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .build();
+    }
+
+    @Bean
+    WebClient notificationServiceWebClient(WebClient.Builder webClientBuilder) {
+        return configuredBuilder(webClientBuilder, "Email SMS Service")
+                .baseUrl(notificationServiceUrl)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }
