@@ -42,7 +42,7 @@ public class AccountClassController {
     @Operation(summary = "Look up a NIN",
             description = "Returns all matching customers as an array; an empty array means no matches.")
     @PostMapping("/nin")
-    public ResponseEntity<List<NinResponse>> ninDetails(@RequestBody NinRequest request) {
+    public ResponseEntity<NinResponse> ninDetails(@RequestBody NinRequest request) {
         return ResponseEntity.ok(accountClassService.nin(request));
     }
 

@@ -36,7 +36,7 @@ public class AccountClassService {
     }
 
 
-    public List<NinResponse> nin(NinRequest request) {
+    public NinResponse nin(NinRequest request) {
         log.info("Getting Nin for customer number {}", request.getNin());
         return post("api/v1/accountclass/check_nin", request, "getting nin");
     }
@@ -67,7 +67,7 @@ public class AccountClassService {
         }
     }
 
-    private List<NinResponse> post(String uri, Object request, String operation) {
+    private NinResponse post(String uri, Object request, String operation) {
         return webClient.post()
                 .uri(uri)
                 .bodyValue(request)
@@ -79,7 +79,7 @@ public class AccountClassService {
                 .block();
     }
 
-    private List<NinResponse> readResponse(String rawResponse, String operation) {
+    private NinResponse readResponse(String rawResponse, String operation) {
         try {
             JsonNode response = objectMapper.readTree(rawResponse);
             if (response == null || (!response.isArray() && !response.isObject())) {
@@ -90,7 +90,9 @@ public class AccountClassService {
                         .constructCollectionType(List.class, NinResponse.class);
                 return objectMapper.readValue(rawResponse, listType);
             }
-            return List.of(objectMapper.treeToValue(response, NinResponse.class));
+           // return List.of(objectMapper.treeToValue(response, NinResponse.class));
+            return objectMapper.treeToValue(response, NinResponse.class);
+
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("Unable to deserialize raw response for " + operation, exception);
         }
