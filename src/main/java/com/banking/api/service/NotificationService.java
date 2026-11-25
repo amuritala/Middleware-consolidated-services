@@ -1,5 +1,8 @@
 package com.banking.api.service;
 
+import com.banking.api.dto.EmailRequest;
+import com.banking.api.dto.SmsBulkRequest;
+import com.banking.api.dto.SmsRequest;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -10,7 +13,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 
 import java.time.Duration;
-import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 @Service
@@ -21,19 +23,19 @@ public class NotificationService {
         this.webClient = webClient;
     }
 
-    public ResponseEntity<String> sendEmail(Map<String, Object> request) {
+    public ResponseEntity<String> sendEmail(EmailRequest request) {
         return post("/sendMail", request);
     }
 
-    public ResponseEntity<String> sendSms(Map<String, Object> request) {
+    public ResponseEntity<String> sendSms(SmsRequest request) {
         return post("/api/vi/sendsms", request);
     }
 
-    public ResponseEntity<String> sendBulkSms(Map<String, Object> request) {
+    public ResponseEntity<String> sendBulkSms(SmsBulkRequest request) {
         return post("/api/vi/sendbulksms", request);
     }
 
-    private ResponseEntity<String> post(String path, Map<String, Object> request) {
+    private ResponseEntity<String> post(String path, Object request) {
         return webClient.post()
                 .uri(path)
                 .bodyValue(request)

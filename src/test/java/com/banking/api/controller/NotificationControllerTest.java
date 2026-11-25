@@ -1,6 +1,9 @@
 package com.banking.api.controller;
 
 import com.banking.api.config.SecurityConfig;
+import com.banking.api.dto.EmailRequest;
+import com.banking.api.dto.SmsBulkRequest;
+import com.banking.api.dto.SmsRequest;
 import com.banking.api.service.NotificationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +15,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -48,11 +53,28 @@ class NotificationControllerTest {
         verifyNoInteractions(service);
 
         when(service.sendEmail(any())).thenReturn(ResponseEntity.ok("sent"));
-        mvc.perform(post(path).with(jwt().authorities(client, email)).contentType("application/json").content("{}"))
+        mvc.perform(post(path).with(jwt().authorities(client, email)).contentType("application/json")
+                        .content("{\"recipient\":\"test@example.com\",\"subject\":\"hello\",\"msgBody\":\"body\"}"))
                 .andExpect(status().isOk()).andExpect(content().string("sent"));
+        verify(service).sendEmail(argThat((EmailRequest request) ->
+                "test@example.com".equals(request.getRecipient())
+                        && "hello".equals(request.getSubject()) && "body".equals(request.getMsgBody())));
         when(service.sendSms(any())).thenReturn(ResponseEntity.badRequest().body("bad SMS"));
         mvc.perform(post("/api/service/notifications/sms").with(jwt().authorities(client, sms))
-                        .contentType("application/json").content("{}"))
+                        .contentType("application/json")
+                        .content("{\"to\":\"123\",\"content\":\"hello\",\"refrence\":\"abc\"}"))
                 .andExpect(status().isBadRequest()).andExpect(content().string("bad SMS"));
+        verify(service).sendSms(argThat((SmsRequest request) ->
+                "123".equals(request.getTo()) && "abc".equals(request.getRefrence())
+                        && "SkyAlert".equals(request.getFrom())));
+        when(service.sendBulkSms(any())).thenReturn(ResponseEntity.ok("queued"));
+        mvc.perform(post("/api/service/notifications/sms/bulk").with(jwt().authorities(client, sms))
+                        .contentType("application/json")
+                        .content("{\"content\":\"hello\",\"recipients\":[{\"to\":\"123\",\"reference\":\"ref\"}]}"))
+                .andExpect(status().isOk()).andExpect(content().string("queued"));
+        verify(service).sendBulkSms(argThat((SmsBulkRequest request) ->
+                "SkyAlert".equals(request.getFrom()) && request.getRecipients().size() == 1
+                        && "123".equals(request.getRecipients().get(0).getTo())
+                        && "ref".equals(request.getRecipients().get(0).getReference())));
     }
 }

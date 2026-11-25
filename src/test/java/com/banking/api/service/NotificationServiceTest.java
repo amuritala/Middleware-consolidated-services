@@ -1,5 +1,9 @@
 package com.banking.api.service;
 
+import com.banking.api.dto.EmailRequest;
+import com.banking.api.dto.Recipients;
+import com.banking.api.dto.SmsBulkRequest;
+import com.banking.api.dto.SmsRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.AfterEach;
@@ -13,7 +17,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.Map;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -52,23 +56,32 @@ class NotificationServiceTest {
 
     @Test
     void forwardsPayloadsAndPreservesDownstreamResponses() throws Exception {
-        Map<String, Object> email = Map.of("recipient", "test@example.com", "subject", "hello", "msgBody", "body");
+        EmailRequest email = new EmailRequest("test@example.com", "body", "hello", "file");
         var emailResponse = service.sendEmail(email);
         assertEquals("/sendMail", path.get());
-        assertEquals(mapper.valueToTree(email), mapper.readTree(body.get()));
+        assertEquals(mapper.readTree("""
+                {"recipient":"test@example.com","subject":"hello","msgBody":"body","attachment":"file"}
+                """), mapper.readTree(body.get()));
         assertEquals("Mail Sent Successfully", emailResponse.getBody());
         assertEquals(MediaType.TEXT_PLAIN, emailResponse.getHeaders().getContentType());
 
-        Map<String, Object> sms = Map.of("to", "123", "content", "hello", "refrence", "abc");
+        SmsRequest sms = new SmsRequest("SkyAlert", "123", "hello", "abc", "https://example.com/callback");
         var smsResponse = service.sendSms(sms);
         assertEquals("/api/vi/sendsms", path.get());
-        assertEquals(mapper.valueToTree(sms), mapper.readTree(body.get()));
+        assertEquals(mapper.readTree("""
+                {"from":"SkyAlert","to":"123","content":"hello","refrence":"abc",
+                 "callbackUrl":"https://example.com/callback"}
+                """), mapper.readTree(body.get()));
         assertEquals("{\"status\":\"queued\"}", smsResponse.getBody());
 
-        Map<String, Object> bulk = Map.of("content", "hello", "recipients", java.util.List.of());
+        SmsBulkRequest bulk = new SmsBulkRequest("SkyAlert", "hello", "https://example.com/callback",
+                List.of(new Recipients("123", "abc"), new Recipients("456", "def")));
         var bulkResponse = service.sendBulkSms(bulk);
         assertEquals("/api/vi/sendbulksms", path.get());
-        assertEquals(mapper.valueToTree(bulk), mapper.readTree(body.get()));
+        assertEquals(mapper.readTree("""
+                {"from":"SkyAlert","content":"hello","callbackUrl":"https://example.com/callback",
+                 "recipients":[{"to":"123","reference":"abc"},{"to":"456","reference":"def"}]}
+                """), mapper.readTree(body.get()));
         assertEquals(HttpStatus.BAD_REQUEST, bulkResponse.getStatusCode());
         assertEquals("{\"error\":\"invalid recipients\"}", bulkResponse.getBody());
     }
@@ -77,7 +90,7 @@ class NotificationServiceTest {
     void reportsUnavailableDownstream() {
         server.stop(0);
         ResponseStatusException error = assertThrows(ResponseStatusException.class,
-                () -> service.sendEmail(Map.of("recipient", "test@example.com")));
+                () -> service.sendEmail(new EmailRequest("test@example.com", "body", "hello", null)));
         assertEquals(HttpStatus.BAD_GATEWAY, error.getStatusCode());
     }
 }
